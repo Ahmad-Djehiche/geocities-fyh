@@ -66,7 +66,7 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
   const [mailbox, setMailbox] = useState(null)
   const [departure, setDeparture] = useState(null)
   const [arrival, setArrival] = useState(null)
-  const [position, setPosition] = useState({ x: null, y: null, facing: 'up', cameraOffset: 0 })
+  const [position, setPosition] = useState({ xRatio: null, yRatio: null, facing: 'up', cameraOffset: 0 })
   const [layout, setLayout] = useState({ width: 0, height: 0, viewportHeight: 0, plots: [] })
   const [isFullscreen, toggleFullscreen] = useFullscreen(viewportRef)
 
@@ -101,13 +101,12 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
       })
       const viewportHeight = viewport.clientHeight
       setLayout({ width, height, viewportHeight, plots: plotPositions })
-      setPosition((current) => current.x === null
-        ? { ...current, x: width / 2, y: viewportHeight * 0.06 }
-        : {
-            ...current,
-            x: Math.min(width - 24, Math.max(24, current.x)),
-            y: Math.min(height - 24, Math.max(24, current.y)),
-          })
+      setPosition((current) => {
+        if (current.xRatio === null) {
+          return { ...current, xRatio: 0.5, yRatio: 0.06 }
+        }
+        return current
+      })
     }
     measure()
     const observer = new ResizeObserver(measure)
@@ -115,8 +114,12 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
     return () => observer.disconnect()
   }, [extraLevels])
 
-  const playerX = position.x ?? layout.width / 2
-  const playerHeight = position.y ?? layout.viewportHeight * 0.06
+  const playerX = position.xRatio === null
+    ? layout.width / 2
+    : position.xRatio * layout.width
+  const playerHeight = position.yRatio === null
+    ? layout.viewportHeight * 0.06
+    : position.yRatio * layout.height
   const playerY = layout.height - playerHeight
   const cameraOffset = followPlayer(
     playerHeight, position.cameraOffset, layout.viewportHeight, layout.height,
@@ -174,12 +177,16 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
         const step = playerSpeed * elapsed / Math.hypot(dx, dy)
         const facing = dx ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'up' : 'down')
         setPosition((current) => {
-          const y = Math.max(24, Math.min(layout.height - 24, (current.y ?? layout.viewportHeight * 0.06) + dy * step))
+          const xRatio = current.xRatio ?? 0.5
+          const yRatio = current.yRatio ?? 0.06
+          const newXRatio = Math.max(24 / layout.width, Math.min(1 - 24 / layout.width, xRatio + dx * step / layout.width))
+          const newYRatio = Math.max(24 / layout.height, Math.min(1 - 24 / layout.height, yRatio + dy * step / layout.height))
+          const newY = newYRatio * layout.height
           return {
             facing,
-            x: Math.max(24, Math.min(layout.width - 24, (current.x ?? layout.width / 2) + dx * step)),
-            y,
-            cameraOffset: followPlayer(y, current.cameraOffset, layout.viewportHeight, layout.height),
+            xRatio: newXRatio,
+            yRatio: newYRatio,
+            cameraOffset: followPlayer(newY, current.cameraOffset, layout.viewportHeight, layout.height),
           }
         })
       }
@@ -329,11 +336,11 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
             className="street-player"
             src={playerSprites[position.facing]}
             alt=""
-            style={{ left: position.x ?? '50%', bottom: playerHeight }}
+            style={{ left: `${playerX}px`, bottom: playerHeight }}
           />
           <div
             className="street-prompt"
-            style={{ left: position.x ?? '50%', bottom: playerHeight + 54 }}
+            style={{ left: `${playerX}px`, bottom: playerHeight + 54 }}
             role="status"
           >
             {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
