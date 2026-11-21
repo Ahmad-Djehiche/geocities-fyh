@@ -41,6 +41,9 @@ jobs:
             count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
               --jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length')
             if [ "$count" -gt 0 ]; then
+              # Give Actions and Pages time to make the finalized artifact visible
+              # to deploy-pages; this avoids a metadata race after a successful upload.
+              sleep 10
               exit 0
             fi
             sleep 5
