@@ -90,7 +90,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
     if (!canInteract) return
     if (nearbyMailbox) openMailbox(nearbyMailbox)
     else if (nearbyHouse) onVisit(nearbyHouse)
-    else if (nearbyPlot !== null) onBuild()
+    else if (nearbyPlot !== null) onBuild(nearbyPlot + 1)
   })
 
   useEffect(() => {
@@ -180,7 +180,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
                 className="street-plot-button"
                 type="button"
                 disabled={!canInteract}
-                onClick={house ? () => onVisit(house) : onBuild}
+                onClick={house ? () => onVisit(house) : () => onBuild(index + 1)}
                 aria-label={house ? `Visit ${house.name}'s homepage` : `Build a house on plot ${index + 1}`}
               >
                 {house ? (
