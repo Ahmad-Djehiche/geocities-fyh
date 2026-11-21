@@ -8,7 +8,8 @@ export default function HouseMailDialog({ mailbox, userId, inbox, onSend, onClos
   const pending = useRef(false)
   const draft = useRef(null)
   const current = inbox.current
-  const canSend = supabase && userId && mailbox.house?.owner_id
+  const ownMailbox = Boolean(userId && mailbox.house?.owner_id === userId)
+  const canSend = Boolean(supabase && userId && mailbox.house?.owner_id && !ownMailbox && !inbox.needsSetup)
 
   async function send(event) {
     event.preventDefault()
@@ -31,7 +32,9 @@ export default function HouseMailDialog({ mailbox, userId, inbox, onSend, onClos
     pending.current = false
     setBusy(false)
     if (sendError) {
-      setError('Could not send your message. Try again.')
+      if (sendError.code === '22023') setError('You cannot send mail to yourself.')
+      else if (sendError.code === 'PGRST202') setError('The shared mailbox database has not been set up yet.')
+      else setError('Could not send your message. Try again.')
       return
     }
     onSend(mailbox.plot)
@@ -64,7 +67,12 @@ export default function HouseMailDialog({ mailbox, userId, inbox, onSend, onClos
         ) : (
           <>
             {!current && <p role="status">Loading your mail…</p>}
-            {current?.error && <p role="alert">Could not refresh your inbox. <button type="button" onClick={inbox.refresh}>Retry</button></p>}
+            {current?.error && (
+              <p role="alert">
+                {inbox.needsSetup ? 'The shared mailbox database has not been set up yet.' : 'Could not refresh your inbox.'}
+                {' '}<button type="button" onClick={inbox.refresh}>Retry</button>
+              </p>
+            )}
             {current && !current.error && !current.count && <p>Your mailbox is empty.</p>}
             <ul className="street-mail-list">
               {current?.messages.map((message) => (
@@ -100,7 +108,11 @@ export default function HouseMailDialog({ mailbox, userId, inbox, onSend, onClos
           <textarea name="message" required maxLength={280} rows={4} disabled={busy} />
         </label>
       ) : (
-        <p>{!supabase ? 'Mail is available on the shared street.' : !userId ? 'Sign in to send a message.' : 'This house does not have an account owner.'}</p>
+        <p>{!supabase ? 'Mail is available on the shared street.'
+          : !userId ? 'Sign in to send a message.'
+          : ownMailbox ? 'You cannot send mail to yourself.'
+          : inbox.needsSetup ? 'The shared mailbox database has not been set up yet.'
+          : 'This house does not have an account owner.'}</p>
       )}
       {error && <p role="alert">{error}</p>}
       <div className="street-mail-actions">
