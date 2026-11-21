@@ -1,3 +1,5 @@
+import HouseMailDialog from './HouseMailDialog'
+import useHouseMail from './lib/useHouseMail'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { houseSprite } from './lib/houses'
 import playerBackSprite from './assets/street-player-back.png'
@@ -54,13 +56,16 @@ function followPlayer(playerHeight, cameraOffset, viewportHeight, worldHeight) {
   return Math.max(0, Math.min(worldHeight - viewportHeight, nextOffset))
 }
 
-export default function StreetGame({ houses, paused, interactionsDisabled, vacantPlotAction, onVisit, onBuild }) {
+export default function StreetGame({ houses, userId, paused, interactionsDisabled, vacantPlotAction, onVisit, onBuild }) {
   const viewportRef = useRef(null)
   const streetRef = useRef(null)
   const mailboxDialog = useRef(null)
-  const flightId = useRef(0)
+  const delivered = useRef(new Map())
+  const pendingLetters = useRef(new Map())
+  const inbox = useHouseMail(userId)
   const [mailbox, setMailbox] = useState(null)
-  const [flight, setFlight] = useState(null)
+  const [departure, setDeparture] = useState(null)
+  const [arrival, setArrival] = useState(null)
   const [position, setPosition] = useState({ x: null, y: null, facing: 'up', cameraOffset: 0 })
   const [layout, setLayout] = useState({ width: 0, height: 0, viewportHeight: 0, plots: [] })
   const [isFullscreen, toggleFullscreen] = useFullscreen(viewportRef)
@@ -124,7 +129,10 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
   function openMailbox(plotId) {
     if (plotId !== nearbyMailbox) return
     const house = housesByPlot.get(plotId)
-    if (house) setMailbox({ name: house.name, plot: plotId })
+    if (!house) return
+    setMailbox(house.owner_id === userId && userId
+      ? { mode: 'inbox', userId }
+      : { mode: 'compose', userId, house, plot: plotId })
   }
 
   let nearbyPlot = null
@@ -216,16 +224,39 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
 
   useEffect(() => {
     const dialog = mailboxDialog.current
-    if (mailbox && !dialog.open) dialog.showModal()
-  }, [mailbox])
+    if (mailbox && mailbox.userId === userId && !dialog.open) dialog.showModal()
+    if (dialog.open && mailbox?.userId !== userId) dialog.close()
+  }, [mailbox, userId])
 
-  function sendMessage(event) {
-    event.preventDefault()
-    if (!mailbox) return
-    flightId.current += 1
-    setFlight({ plot: mailbox.plot, id: flightId.current })
+  const cameraTop = layout.height - layout.viewportHeight - cameraOffset
+  const deliveryHouse = houses.find((house) => userId && house.owner_id === userId)
+  const deliveryBounds = layout.plots[Number(deliveryHouse?.plot_id) - 1]
+  const deliveryHouseId = deliveryHouse?.id
+  const deliveryPlot = deliveryHouse?.plot_id
+  const deliveryVisible = deliveryBounds &&
+    deliveryBounds.mailboxY - cameraTop >= 12 &&
+    deliveryBounds.mailboxY - cameraTop < layout.viewportHeight
+
+  useEffect(() => {
+    if (!userId) return
+    const seen = delivered.current.get(userId) ?? new Set()
+    const queued = pendingLetters.current.get(userId) ?? new Map()
+    delivered.current.set(userId, seen)
+    pendingLetters.current.set(userId, queued)
+    for (const letter of inbox.unread?.letters ?? []) {
+      if (!seen.has(letter.id)) queued.set(letter.id, letter)
+    }
+    if (arrival?.userId === userId || !deliveryVisible || mailbox || paused || interactionsDisabled) return
+    const message = Array.from(queued.values()).find((letter) => letter.house_id === deliveryHouseId)
+    if (message) setArrival({ id: message.id, userId, plot: Number(deliveryPlot) })
+  }, [arrival, deliveryHouseId, deliveryPlot, deliveryVisible, inbox.unread, interactionsDisabled, mailbox, paused, userId])
+
+  function sendMessage(plot) {
+    setDeparture({ id: crypto.randomUUID(), plot })
     mailboxDialog.current.close()
   }
+
+  const flights = [departure, arrival?.userId === userId ? arrival : null]
 
   return (
     <>
@@ -236,6 +267,16 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
         {!isFullscreen && (
           <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label="Enter fullscreen">
             ⛶
+          </button>
+        )}
+        {userId && (
+          <button
+            className="street-inbox-button"
+            type="button"
+            disabled={!canInteract}
+            onClick={() => setMailbox({ mode: 'inbox', userId })}
+          >
+            Inbox<span aria-live="polite">{inbox.unread?.count ? ` (${inbox.unread.count})` : ''}</span>
           </button>
         )}
         <div
@@ -279,19 +320,6 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
                         <span aria-hidden="true" />
                       </button>
                     )}
-                    {flight?.plot === plotId && (
-                      <span
-                        className="street-pig-flight"
-                        key={flight.id}
-                        style={{ '--pig-rise': `-${layout.plots[plotId - 1].mailboxY + 70}px` }}
-                        aria-hidden="true"
-                        onAnimationEnd={() => setFlight((current) => current?.id === flight.id ? null : current)}
-                      >
-                        <span className="street-pig-wing" />
-                        <span className="street-pig-body" />
-                        <span className="street-pig-letter" />
-                      </span>
-                    )}
                   </div>
                 )
               })}
@@ -313,26 +341,57 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
             )}
           </div>
         </div>
+        {flights.map((flight) => {
+          const bounds = layout.plots[(flight?.plot ?? 0) - 1]
+          if (!flight || !bounds) return null
+          const incoming = flight === arrival
+          const top = bounds.mailboxY - cameraTop - 34
+          return (
+            <span
+              key={flight.id}
+              className={`street-pig-flight${incoming ? ' street-pig-flight--incoming' : ''}`}
+              style={{ left: bounds.mailboxX - 28, top, '--pig-rise': `${-top - 58}px` }}
+              aria-hidden="true"
+              onAnimationEnd={(event) => {
+                if (event.target !== event.currentTarget) return
+                if (incoming) {
+                  if (deliveryVisible) {
+                    delivered.current.get(flight.userId)?.add(flight.id)
+                    pendingLetters.current.get(flight.userId)?.delete(flight.id)
+                  }
+                  setArrival((current) => current?.id === flight.id ? null : current)
+                } else {
+                  setDeparture((current) => current?.id === flight.id ? null : current)
+                }
+              }}
+            >
+              <span className="street-pig-wing" />
+              <span className="street-pig-body" />
+              <span className="street-pig-letter" />
+            </span>
+          )
+        })}
+        <dialog
+          className="street-mail-dialog"
+          ref={mailboxDialog}
+          aria-labelledby="street-mail-title"
+          onCancel={(event) => {
+            if (event.currentTarget.querySelector('[aria-busy="true"]')) event.preventDefault()
+          }}
+          onClose={() => setMailbox(null)}
+        >
+          {mailbox && mailbox.userId === userId && (
+            <HouseMailDialog
+              key={mailbox.mode === 'inbox' ? 'inbox' : mailbox.house.id}
+              mailbox={mailbox}
+              userId={userId}
+              inbox={inbox}
+              onSend={sendMessage}
+              onClose={() => mailboxDialog.current.close()}
+            />
+          )}
+        </dialog>
       </section>
-      <dialog
-        className="street-mail-dialog"
-        ref={mailboxDialog}
-        aria-labelledby="street-mail-title"
-        onClose={() => setMailbox(null)}
-      >
-        <form key={mailbox?.plot} onSubmit={sendMessage}>
-          <h2 id="street-mail-title">Mail for {mailbox?.name}</h2>
-          <label>
-            Message
-            <textarea required maxLength={280} rows={4} />
-          </label>
-          <p>This is a local demo. Your message won?t be delivered.</p>
-          <div className="street-mail-actions">
-            <button type="button" onClick={() => mailboxDialog.current.close()}>Cancel</button>
-            <button className="build-button" type="submit">Send</button>
-          </div>
-        </form>
-      </dialog>
     </>
   )
 }

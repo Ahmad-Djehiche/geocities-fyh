@@ -31,6 +31,12 @@ To check the setup across machines, sign into two accounts in separate browser p
 
 Visitors can view houses on the shared street. Local preview allows one custom house per browser and keeps it in local storage.
 
+## House mail
+
+Apply the migrations in order, including `20261121000002_customize_owned_houses.sql` and `20261121000003_house_messages.sql`. The latter creates the private inbox and enables Supabase Realtime updates. The app also refreshes the inbox periodically to catch deliveries after a disconnect.
+
+On the shared street, sign in and walk to another player's mailbox. Send a letter to launch the pig from that mailbox. The recipient can read it from **Inbox** or their own mailbox. When the recipient's house is on screen, the pig descends to its mailbox. Houses created before account ownership need an assigned owner to receive mail.
+
 ## Art credits
 
 The street house sprite comes from CraftPix's Main Characters Home Free Top-Down Pixel Art asset pack.

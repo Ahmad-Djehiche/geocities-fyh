@@ -181,6 +181,7 @@ function App() {
 
       <StreetGame
         houses={houses}
+        userId={userId}
         paused={Boolean(selected)}
         interactionsDisabled={Boolean(dialog) || !streetHouses}
         vacantPlotAction={ownsHouse ? 'Add a friend' : 'Claim a plot'}
