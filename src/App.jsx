@@ -218,6 +218,40 @@ function App() {
     }
   }
 
+  async function deleteHouse() {
+    const house = editRequest
+    if (!house) return 'No house selected for deletion.'
+
+    if (supabase) {
+      if (!userId || house.owner_id !== userId) return 'You can only delete your own house.'
+      const { data, error } = await supabase
+        .from('houses')
+        .delete()
+        .eq('id', house.id)
+        .eq('owner_id', userId)
+        .select('id')
+        .maybeSingle()
+
+      if (error) return 'Could not delete your house. Try again.'
+      refreshStreet()
+      if (!data) return 'This house is no longer available to delete.'
+      setOwnership({ userId, hasHouse: false })
+      setSharedStreet((current) => current?.userId === userId
+        ? { ...current, houses: current.houses.filter((home) => home.id !== house.id) }
+        : current)
+    } else {
+      const updated = loadPreviewHouses().filter((home) => home.id !== house.id)
+      try {
+        localStorage.setItem(previewStorageKey, JSON.stringify(updated))
+      } catch {
+        return 'Could not delete your house in this browser.'
+      }
+      setPreviewHouses(updated)
+    }
+
+    setDialog((current) => current?.type === 'edit' && current.houseId === house.id ? null : current)
+  }
+
   return (
     <main>
       <header className="topbar">
@@ -272,7 +306,7 @@ function App() {
         <HouseBuilder key={userId} plotId={buildRequest.plotId} onClose={closeDialog} onSave={addHouse} />
       )}
       {editRequest && (
-        <HouseEditor key={editRequest.id} house={editRequest} onClose={closeDialog} onSave={updateHouse} />
+        <HouseEditor key={editRequest.id} house={editRequest} onClose={closeDialog} onSave={updateHouse} onDelete={deleteHouse} />
       )}
     </main>
   )
