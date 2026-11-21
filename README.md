@@ -19,3 +19,7 @@ Open the local URL printed by Vite. Without Supabase credentials, Webstreet uses
 4. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then restart the dev server.
 
 The app will switch to the shared `houses` table automatically. The schema allows public reads and public house creation for this hackathon prototype.
+
+## Art credits
+
+The street house sprite comes from CraftPix's Main Characters Home Free Top-Down Pixel Art asset pack.

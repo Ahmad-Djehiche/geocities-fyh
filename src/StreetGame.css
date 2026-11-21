@@ -95,49 +95,14 @@
 .street-plot-button:focus-visible { outline: 3px solid #263c34; outline-offset: 3px; }
 
 .street-house {
-  width: 100%;
-  aspect-ratio: 1.2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  filter: drop-shadow(4px 5px #35573b70);
-}
-
-.street-house-roof {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 57%;
-  clip-path: polygon(0 78%, 10% 78%, 10% 58%, 20% 58%, 20% 38%, 30% 38%, 30% 18%, 40% 18%, 40% 0, 60% 0, 60% 18%, 70% 18%, 70% 38%, 80% 38%, 80% 58%, 90% 58%, 90% 78%, 100% 78%, 100% 100%, 0 100%);
-  background: repeating-linear-gradient(0deg, #2f25374d 0 2px, transparent 2px 10px), var(--roof-color, #dd7980);
-  box-shadow: inset 0 -6px #392936;
-}
-
-.street-house-front {
-  width: 83%;
-  height: 43%;
-  display: flex;
-  align-items: end;
-  justify-content: space-evenly;
-  border: 3px solid #392936;
-  border-top: 0;
-  background: repeating-linear-gradient(0deg, #dfad83 0 2px, #ffe1ad 2px 10px);
-}
-
-.street-window {
-  align-self: center;
-  width: 20%;
-  height: 45%;
-  border: 2px solid #53465c;
-  background: linear-gradient(90deg, transparent 43%, #53465c 43% 57%, transparent 57%), #9fdae0;
-}
-
-.street-door {
-  width: 24%;
-  height: 80%;
-  border: 2px solid #423447;
-  border-bottom: 0;
-  background: radial-gradient(circle at 72% 58%, #ffdb88 0 1px, transparent 2px), #77607a;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100% - 24px);
+  object-fit: contain;
+  object-position: bottom;
+  image-rendering: pixelated;
+  filter: drop-shadow(3px 4px #35573b66);
 }
 
 .street-vacant-sign {
@@ -197,4 +162,147 @@
 
 @media (prefers-reduced-motion: reduce) {
   .street-plot-button { transition: none; }
+}
+
+.street-plot {
+  --mailbox-offset: min(42%, 75px);
+}
+
+.street-mailbox {
+  position: absolute;
+  z-index: 3;
+  left: calc(50% + var(--mailbox-offset));
+  bottom: 15px;
+  width: 26px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+}
+
+.street-mailbox span {
+  position: relative;
+  width: 15px;
+  height: 12px;
+  border: 2px solid #382d39;
+  border-radius: 4px 3px 0 0;
+  background: #91b8c5;
+  box-shadow: inset 0 -3px #55788c;
+}
+
+.street-mailbox span::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 100%;
+  width: 3px;
+  height: 8px;
+  background: #674737;
+}
+
+.street-mailbox span::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: -5px;
+  width: 5px;
+  height: 8px;
+  border-right: 2px solid #682d41;
+  background: linear-gradient(#f77c76 0 4px, transparent 4px);
+}
+
+.street-mailbox[aria-disabled='false']:hover span { background: #c4e1da; }
+.street-mailbox:focus-visible { outline: 2px solid #263c34; }
+
+.street-mail-dialog {
+  width: min(380px, calc(100% - 32px));
+  padding: 20px;
+  border: 3px solid #382d39;
+  background: #fff5dc;
+  color: #382d39;
+  box-shadow: 5px 5px #382d3966;
+}
+
+.street-mail-dialog::backdrop { background: #23203380; }
+.street-mail-dialog h2 { margin: 0 0 14px; font-size: 19px; }
+.street-mail-dialog label { display: grid; gap: 6px; }
+.street-mail-dialog textarea { width: 100%; padding: 8px; resize: vertical; }
+.street-mail-dialog p { font-size: 11px; }
+.street-mail-actions { display: flex; justify-content: end; align-items: center; gap: 10px; }
+
+.street-pig-flight {
+  position: absolute;
+  z-index: 6;
+  left: calc(50% + var(--mailbox-offset) - 28px);
+  bottom: 32px;
+  width: 58px;
+  height: 46px;
+  pointer-events: none;
+  animation: street-pig-rise 1900ms steps(38, end) both;
+}
+
+.street-pig-body {
+  position: absolute;
+  inset: 10px 0 0;
+  background: #572d46;
+  clip-path: polygon(0 40%, 12% 40%, 12% 24%, 54% 24%, 54% 0, 73% 0, 73% 19%, 88% 19%, 88% 40%, 100% 40%, 100% 74%, 76% 74%, 76% 100%, 61% 100%, 61% 84%, 36% 84%, 36% 100%, 21% 100%, 21% 81%, 12% 81%, 12% 55%, 0 55%);
+}
+
+.street-pig-body::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  clip-path: inherit;
+  background:
+    linear-gradient(#572d46, #572d46) 78% 48% / 4px 4px no-repeat,
+    linear-gradient(#cf648b, #cf648b) right 62% / 21% 25% no-repeat,
+    linear-gradient(#ffb4c9 0 64%, #e883a5 64%);
+}
+
+.street-pig-wing {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  width: 28px;
+  height: 22px;
+  background: linear-gradient(#fff3d4 60%, #d6bcdf 60%);
+  clip-path: polygon(0 0, 25% 0, 25% 25%, 50% 25%, 50% 45%, 100% 45%, 100% 75%, 70% 75%, 70% 100%, 25% 100%, 25% 70%, 0 70%);
+  transform-origin: bottom right;
+  animation: street-pig-flap 220ms steps(2, end) infinite alternate;
+}
+
+.street-pig-letter {
+  position: absolute;
+  right: 6px;
+  bottom: -4px;
+  width: 20px;
+  height: 13px;
+  border: 2px solid #572d46;
+  background:
+    linear-gradient(32deg, transparent 43%, #ad7766 43% 57%, transparent 57%) left top / 50% 75% no-repeat,
+    linear-gradient(-32deg, transparent 43%, #ad7766 43% 57%, transparent 57%) right top / 50% 75% no-repeat,
+    #fff2cd;
+}
+
+@keyframes street-pig-rise {
+  0% { transform: translate(0, 0); }
+  40% { transform: translate(14px, calc(var(--pig-rise) * .37)); }
+  70% { transform: translate(-10px, calc(var(--pig-rise) * .7)); }
+  100% { transform: translate(4px, var(--pig-rise)); }
+}
+
+@keyframes street-pig-flap {
+  to { transform: scaleY(.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-pig-flight { animation: street-pig-fade 800ms linear both; }
+  .street-pig-wing { animation: none; }
+  @keyframes street-pig-fade {
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 }
