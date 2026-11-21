@@ -84,7 +84,12 @@ function App() {
         <p className="pitch">Every house is someone&apos;s homepage.</p>
       </section>
 
-      <StreetGame houses={houses} onVisit={setSelected} onBuild={() => setFormOpen(true)} />
+      <StreetGame
+        houses={houses}
+        paused={Boolean(selected) || formOpen}
+        onVisit={setSelected}
+        onBuild={() => setFormOpen(true)}
+      />
 
       <footer>
         <span>{houses.length} homes online</span>
