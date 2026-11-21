@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import StreetGame from './StreetGame'
 import './App.css'
 
 const starterHouses = [
@@ -83,34 +84,7 @@ function App() {
         <p className="pitch">Every house is someone&apos;s homepage.</p>
       </section>
 
-      <section className="street" aria-label="Webstreet neighborhood">
-        <div className="sky-orbit orbit-one" />
-        <div className="sky-orbit orbit-two" />
-        <div className="cloud cloud-one">· · ·</div>
-        <div className="cloud cloud-two">· · · ·</div>
-        {houses.map((house, index) => (
-          <button
-            className="house"
-            key={house.id}
-            onClick={() => setSelected(house)}
-            aria-label={`Visit ${house.name}'s homepage`}
-          >
-            <span className="house-number">{String(index + 1).padStart(2, '0')}</span>
-            <span className="roof" style={{ '--house-color': house.color }} />
-            <span className="chimney" style={{ '--house-color': house.color }} />
-            <span className="walls" style={{ '--house-color': house.color }}>
-              <span className="window window-left" />
-              <span className="window window-right" />
-              <span className="door" />
-              <span className="owner">{house.name}</span>
-            </span>
-          </button>
-        ))}
-        <button className="empty-lot" onClick={() => setFormOpen(true)} aria-label="Build a new house">
-          <span>+</span>
-          <b>YOUR LOT</b>
-        </button>
-      </section>
+      <StreetGame houses={houses} onVisit={setSelected} onBuild={() => setFormOpen(true)} />
 
       <footer>
         <span>{houses.length} homes online</span>
