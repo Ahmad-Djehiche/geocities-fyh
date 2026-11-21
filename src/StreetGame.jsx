@@ -6,6 +6,23 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import playerSprite from './assets/street-player.png'
 import './StreetGame.css'
 
+function useFullscreen() {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      document.documentElement.requestFullscreen()
+    }
+  }, [])
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onChange)
+    return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+  return [isFullscreen, toggleFullscreen]
+}
+
 const houseSprites = [houseSprite, blueHouseSprite, greenHouseSprite, plumHouseSprite]
 const plots = ['west-north', 'east-north', 'west-south', 'east-south']
 const directions = {
@@ -26,6 +43,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
   const [flight, setFlight] = useState(null)
   const [position, setPosition] = useState({ x: null, y: null })
   const [layout, setLayout] = useState({ width: 0, height: 0, plots: [] })
+  const [isFullscreen, toggleFullscreen] = useFullscreen()
 
   useEffect(() => {
     const street = streetRef.current
@@ -168,8 +186,13 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
 
   return (
     <>
-      <p className="street-controls"><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</p>
-      <section className="street-map" ref={streetRef} aria-label="Webstreet neighborhood">
+      <p className="street-controls">
+        <span><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</span>
+        <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+          {isFullscreen ? '✕' : '⛶'}
+        </button>
+      </p>
+      <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={streetRef} aria-label="Webstreet neighborhood">
         <div className="street-road" aria-hidden="true" />
         <div className="street-trees" aria-hidden="true" />
         {plots.map((plot, index) => {
