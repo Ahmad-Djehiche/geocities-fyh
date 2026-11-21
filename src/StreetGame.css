@@ -85,6 +85,44 @@
     #f2c990;
 }
 
+.street-road::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 50%;
+  width: clamp(54px, 12vw, 108px);
+  aspect-ratio: 4 / 3;
+  transform: translateX(-50%);
+  background: url('./assets/street-fountain.png') center / contain no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.street-road::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 19px;
+  left: calc(50% - 12px);
+  width: 2px;
+  height: 2px;
+  background: #effcf0;
+  box-shadow: 20px 5px #d7f5ed, 5px 10px #d7f5ed;
+  pointer-events: none;
+  animation: street-fountain-sparkle 1400ms steps(3, end) infinite;
+}
+
+@keyframes street-fountain-sparkle {
+  0%, 100% { opacity: .2; }
+  45% { opacity: .9; }
+  75% { opacity: .5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-road::after { animation: none; }
+}
+
 .street-trees {
   position: absolute;
   inset: 0;
