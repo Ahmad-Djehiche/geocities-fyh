@@ -5,6 +5,7 @@ create table if not exists public.houses (
   description text not null default '',
   color text not null default '#ff70a6',
   style text not null default 'pixel',
+  plot_id integer not null default 1,
   created_at timestamptz not null default now()
 );
 
