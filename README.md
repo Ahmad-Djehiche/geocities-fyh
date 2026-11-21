@@ -19,6 +19,10 @@ Open the local URL printed by Vite. Without Supabase credentials, Webstreet uses
 4. In Supabase Authentication, enable email/password sign-in and sign-ups. Set the Site URL and allow your app URLs as redirect URLs for email confirmation, including your Vite URL if testing locally.
 5. Restart Vite. Open **Sign in** to create an account. Confirm your email if prompted, then choose a unique username.
 
+Run `supabase/migrations/20261121000001_allocate_house_plots.sql` once before deploying shared plot assignment. The migration preserves existing houses and moves any duplicate plot claims to vacant plots.
+
+Choose a vacant lot on the map or use **Build a house** to take the first open plot. If another player claims the selected lot first, the database places the house on the next available plot. Open shared streets refresh automatically, so friends can see the new house without reloading. Houses built after the four map plots fill up appear under **More homes**.
+
 Open **Friends** and send a request to another player’s username. The recipient can accept it from **Incoming requests**. Both players will then see each other under **Your friends**. The open Friends panel refreshes automatically.
 
 To check the setup across machines, sign into two accounts in separate browser profiles or on separate devices, send a request from the first account, and accept it from the second.
