@@ -189,7 +189,6 @@ function App() {
       />
 
       <footer>
-        <span>{houses.length} homes online</span>
         <span className="status"><i /> {supabase ? 'SHARED STREET' : 'LOCAL PREVIEW'}</span>
       </footer>
 
