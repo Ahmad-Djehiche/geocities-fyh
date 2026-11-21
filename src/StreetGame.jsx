@@ -1,8 +1,5 @@
-import blueHouseSprite from './assets/craftpix-house-blue.png'
-import greenHouseSprite from './assets/craftpix-house-green.png'
-import plumHouseSprite from './assets/craftpix-house-plum.png'
-import houseSprite from './assets/craftpix-house.png'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import { houseSprite } from './lib/houses'
 import playerBackSprite from './assets/street-player-back.png'
 import playerFrontSprite from './assets/street-player.png'
 import playerLeftSprite from './assets/street-player-left.png'
@@ -30,7 +27,6 @@ function useFullscreen(targetRef) {
   return [isFullscreen, toggleFullscreen]
 }
 
-const houseSprites = [houseSprite, blueHouseSprite, greenHouseSprite, plumHouseSprite]
 const plots = ['west-north', 'east-north', 'west-south', 'east-south']
 const playerSprites = {
   up: playerBackSprite,
@@ -58,7 +54,7 @@ function followPlayer(playerHeight, cameraOffset, viewportHeight, worldHeight) {
   return Math.max(0, Math.min(worldHeight - viewportHeight, nextOffset))
 }
 
-export default function StreetGame({ houses, paused, interactionsDisabled, onVisit, onBuild }) {
+export default function StreetGame({ houses, paused, interactionsDisabled, vacantPlotAction, onVisit, onBuild }) {
   const viewportRef = useRef(null)
   const streetRef = useRef(null)
   const mailboxDialog = useRef(null)
@@ -262,14 +258,14 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
                       type="button"
                       disabled={!canInteract}
                       onClick={house ? () => onVisit(house) : () => onBuild(plotId)}
-                      aria-label={house ? `Visit ${house.name}'s homepage` : `Build a house on plot ${plotId}`}
+                      aria-label={house ? `Visit ${house.name}'s homepage` : `${vacantPlotAction}, plot ${plotId}`}
                     >
                       {house ? (
-                        <img className="street-house" src={houseSprites[index]} alt="" />
+                        <img className="street-house" src={houseSprite(house.color, index)} alt="" />
                       ) : (
                         <span className="street-vacant-sign" aria-hidden="true">+</span>
                       )}
-                      <span className="street-plot-label">{house ? house.name : 'Vacant lot'}</span>
+                      <span className="street-plot-label">{house ? house.name : vacantPlotAction}</span>
                     </button>
                     {house && (
                       <button
@@ -313,7 +309,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
             role="status"
           >
             {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
-              <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
+              <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : vacantPlotAction}</span>
             )}
           </div>
         </div>
