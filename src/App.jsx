@@ -35,11 +35,29 @@ function App() {
     loadHouses()
   }, [])
 
+  async function removeHouse(houseId) {
+    if (supabase) {
+      const { error } = await supabase
+        .from('houses')
+        .delete()
+        .eq('id', houseId)
+      if (!error) {
+        setHouses((current) => current.filter((h) => h.id !== houseId))
+      }
+    } else {
+      const updated = houses.filter((h) => h.id !== houseId)
+      setHouses(updated)
+      localStorage.setItem('webstreet-houses', JSON.stringify(updated))
+    }
+  }
+
   async function addHouse(event) {
     event.preventDefault()
     setSaving(true)
     const data = new FormData(event.currentTarget)
-    const nextPlotId = (houses.length > 0 ? Math.max(...houses.map(h => h.plot_id)) : 0) + 1
+    const plotIds = houses.map(h => h.plot_id).sort((a, b) => a - b)
+    let nextPlotId = 1
+    while (plotIds.includes(nextPlotId)) nextPlotId++
     const house = {
       name: data.get('name').trim(),
       title: data.get('title').trim(),
