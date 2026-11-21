@@ -2,7 +2,7 @@ import blueHouseSprite from './assets/craftpix-house-blue.png'
 import greenHouseSprite from './assets/craftpix-house-green.png'
 import plumHouseSprite from './assets/craftpix-house-plum.png'
 import houseSprite from './assets/craftpix-house.png'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import playerSprite from './assets/street-player.png'
 import './StreetGame.css'
 
@@ -18,7 +18,7 @@ const playerSpeed = 230
 const interactionDistance = 110
 const mailboxDistance = 36
 
-export default function StreetGame({ houses, paused, onVisit, onBuild }) {
+export default function StreetGame({ houses, paused, interactionsDisabled, onVisit, onBuild }) {
   const streetRef = useRef(null)
   const mailboxDialog = useRef(null)
   const flightId = useRef(0)
@@ -83,6 +83,14 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
   const nearbyHouse = nearbyPlot === null
     ? null
     : houses.find((house) => Number(house.plot_id) === nearbyPlot + 1)
+  const canInteract = !paused && !interactionsDisabled
+
+  const interact = useEffectEvent(() => {
+    if (!canInteract) return
+    if (nearbyMailbox) openMailbox(nearbyMailbox)
+    else if (nearbyHouse) onVisit(nearbyHouse)
+    else if (nearbyPlot !== null) onBuild()
+  })
 
   useEffect(() => {
     if (paused || mailbox) return
@@ -120,11 +128,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           event.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
 
       const key = event.key.toLowerCase()
-      if (key === 'e' && !event.repeat) {
-        if (nearbyMailbox) openMailbox(nearbyMailbox)
-        else if (nearbyHouse) onVisit(nearbyHouse)
-        else if (nearbyPlot !== null) onBuild()
-      }
+      if (key === 'e' && !event.repeat) interact()
       if (!Object.hasOwn(directions, key)) return
 
       event.preventDefault()
@@ -146,7 +150,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', stopMoving)
     }
-  }, [paused, mailbox, layout, nearbyHouse, nearbyPlot, nearbyMailbox, openMailbox, onVisit, onBuild])
+  }, [paused, mailbox, layout])
 
   useEffect(() => {
     const dialog = mailboxDialog.current
@@ -174,6 +178,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
               <button
                 className="street-plot-button"
                 type="button"
+                disabled={!canInteract}
                 onClick={house ? () => onVisit(house) : onBuild}
                 aria-label={house ? `Visit ${house.name}'s homepage` : `Build a house on plot ${index + 1}`}
               >
@@ -223,7 +228,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           style={{ left: position.x ?? '50%', bottom: (position.y ?? layout.height * 0.06) + 54 }}
           role="status"
         >
-          {!paused && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
+          {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
             <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
           )}
         </div>
@@ -251,7 +256,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
         <ul className="street-other-homes" aria-label="More homes">
           {houses.filter((house) => Number(house.plot_id) > plots.length).map((house) => (
             <li key={house.id}>
-              <button type="button" onClick={() => onVisit(house)}>Visit {house.name}</button>
+              <button type="button" disabled={!canInteract} onClick={() => onVisit(house)}>Visit {house.name}</button>
             </li>
           ))}
         </ul>
