@@ -19,15 +19,17 @@ Open the local URL printed by Vite. Without Supabase credentials, Webstreet uses
 4. In Supabase Authentication, enable email/password sign-in and sign-ups. Set the Site URL and allow your app URLs as redirect URLs for email confirmation, including your Vite URL if testing locally.
 5. Restart Vite. Open **Sign in** to create an account. Confirm your email if prompted, then choose a unique username.
 
-Run `supabase/migrations/20261121000001_allocate_house_plots.sql` once before deploying shared plot assignment. The migration preserves existing houses and moves any duplicate plot claims to vacant plots.
+Before deploying, apply any pending migrations from `supabase/migrations` in filename order. The plot migration moves duplicate plot claims to vacant plots. `20261121000002_customize_owned_houses.sql` adds house ownership and optional links. Houses created before ownership was recorded stay visible as unowned houses.
 
-Choose a vacant lot on the map or use **Build a house** to take the first open plot. If another player claims the selected lot first, the database places the house on the next available plot. Open shared streets refresh automatically, so friends can see the new house without reloading. Houses built after the four map plots fill up appear under **More homes**.
+Sign in and choose a vacant lot or use **Build a house** to take the first open plot. Pick a house colour and optionally add a personal website and a GitHub URL. Each account can build one house. After building, the top button and vacant plots open **Add a friend**.
+
+If another player claims the selected lot first, the database places the house on the next available plot. Open shared streets refresh automatically. Houses built after the four map plots fill up appear under **More homes**.
 
 Open **Friends** and send a request to another player’s username. The recipient can accept it from **Incoming requests**. Both players will then see each other under **Your friends**. The open Friends panel refreshes automatically.
 
 To check the setup across machines, sign into two accounts in separate browser profiles or on separate devices, send a request from the first account, and accept it from the second.
 
-The app will switch to the shared `houses` table automatically. The schema allows public reads and public house creation for this hackathon prototype.
+Visitors can view houses on the shared street. Local preview allows one custom house per browser and keeps it in local storage.
 
 ## Art credits
 
