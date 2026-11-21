@@ -27,6 +27,8 @@ If another player claims the selected lot first, the database places the house o
 
 Open **Friends** and send a request to another player’s username. The recipient can accept it from **Incoming requests**. Both players will then see each other under **Your friends**. The open Friends panel refreshes automatically.
 
+With `20261121000004_street_visibility_after_unfriending.sql` applied, choosing **Remove** hides each player’s house from the other’s street. The other player sees the change on their next street refresh. Both keep their houses and plots. Accepting a new friend request makes the houses visible to each other again.
+
 To check the setup across machines, sign into two accounts in separate browser profiles or on separate devices, send a request from the first account, and accept it from the second.
 
 Visitors can view houses on the shared street. Local preview allows one custom house per browser and keeps it in local storage.

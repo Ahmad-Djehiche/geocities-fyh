@@ -222,11 +222,13 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
     }
   }, [paused, mailbox, layout])
 
+  const mailboxVisible = mailbox && mailbox.userId === userId &&
+    (mailbox.mode === 'inbox' || housesByPlot.get(mailbox.plot)?.id === mailbox.house.id)
   useEffect(() => {
     const dialog = mailboxDialog.current
-    if (mailbox && mailbox.userId === userId && !dialog.open) dialog.showModal()
-    if (dialog.open && mailbox?.userId !== userId) dialog.close()
-  }, [mailbox, userId])
+    if (mailboxVisible && !dialog.open) dialog.showModal()
+    if (!mailboxVisible && dialog.open) dialog.close()
+  }, [mailboxVisible])
 
   const cameraTop = layout.height - layout.viewportHeight - cameraOffset
   const deliveryHouse = houses.find((house) => userId && house.owner_id === userId)
@@ -380,7 +382,7 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
           }}
           onClose={() => setMailbox(null)}
         >
-          {mailbox && mailbox.userId === userId && (
+          {mailboxVisible && (
             <HouseMailDialog
               key={mailbox.mode === 'inbox' ? 'inbox' : mailbox.house.id}
               mailbox={mailbox}
