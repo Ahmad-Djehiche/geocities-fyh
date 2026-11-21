@@ -21,7 +21,9 @@ export default function StreetGame({ houses, onVisit, onBuild }) {
               >
                 {house ? (
                   <span className="street-house" style={{ '--roof-color': house.color }} aria-hidden="true">
-                    <span className="street-house-roof" />
+                    <span className="street-house-roof">
+                      <span className="street-dormer" />
+                    </span>
                     <span className="street-house-front">
                       <span className="street-window" />
                       <span className="street-door" />
