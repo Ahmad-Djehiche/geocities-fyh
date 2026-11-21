@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import playerSprite from './assets/street-player.png'
 import './StreetGame.css'
 
@@ -12,7 +12,7 @@ const directions = {
 const playerSpeed = 230
 const interactionDistance = 110
 
-export default function StreetGame({ houses, paused, onVisit, onBuild }) {
+export default function StreetGame({ houses, paused, interactionsDisabled, onVisit, onBuild }) {
   const streetRef = useRef(null)
   const [position, setPosition] = useState({ x: null, y: null })
   const [layout, setLayout] = useState({ width: 0, height: 0, plots: [] })
@@ -57,6 +57,13 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
   const nearbyHouse = nearbyPlot === null
     ? null
     : houses.find((house) => Number(house.plot_id) === nearbyPlot + 1)
+  const canInteract = !paused && !interactionsDisabled
+
+  const interact = useEffectEvent(() => {
+    if (!canInteract) return
+    if (nearbyHouse) onVisit(nearbyHouse)
+    else if (nearbyPlot !== null) onBuild()
+  })
 
   useEffect(() => {
     if (paused) return
@@ -94,10 +101,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           event.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
 
       const key = event.key.toLowerCase()
-      if (key === 'e' && !event.repeat) {
-        if (nearbyHouse) onVisit(nearbyHouse)
-        else if (nearbyPlot !== null) onBuild()
-      }
+      if (key === 'e' && !event.repeat) interact()
       if (!Object.hasOwn(directions, key)) return
 
       event.preventDefault()
@@ -119,7 +123,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', stopMoving)
     }
-  }, [paused, layout, nearbyHouse, nearbyPlot, houses.length, onVisit, onBuild])
+  }, [paused, layout])
 
   return (
     <>
@@ -134,6 +138,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
               <button
                 className="street-plot-button"
                 type="button"
+                disabled={!canInteract}
                 onClick={house ? () => onVisit(house) : onBuild}
                 aria-label={house ? `Visit ${house.name}'s homepage` : `Build a house on plot ${index + 1}`}
               >
@@ -165,7 +170,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           style={{ left: position.x ?? '50%', bottom: (position.y ?? layout.height * 0.06) + 54 }}
           role="status"
         >
-          {!paused && nearbyPlot !== null && (
+          {canInteract && nearbyPlot !== null && (
             <span><kbd>E</kbd> {nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
           )}
         </div>
@@ -174,7 +179,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
         <ul className="street-other-homes" aria-label="More homes">
           {houses.filter((house) => Number(house.plot_id) > plots.length).map((house) => (
             <li key={house.id}>
-              <button type="button" onClick={() => onVisit(house)}>Visit {house.name}</button>
+              <button type="button" disabled={!canInteract} onClick={() => onVisit(house)}>Visit {house.name}</button>
             </li>
           ))}
         </ul>
