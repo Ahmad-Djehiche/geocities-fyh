@@ -290,13 +290,13 @@
   position: absolute;
   z-index: 6;
   --pig-rise: 0px;
-  left: calc(50% + var(--mailbox-offset) - 28px);
-  bottom: 32px;
   width: 58px;
   height: 46px;
   pointer-events: none;
   animation: street-pig-rise 1900ms steps(38, end) both;
 }
+
+.street-pig-flight--incoming { animation-direction: reverse; }
 
 .street-pig-body {
   position: absolute;
@@ -360,3 +360,22 @@
     100% { opacity: 0; }
   }
 }
+
+.street-inbox-button {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  border: 2px solid #382d39;
+  background: #fff5dc;
+  color: #382d39;
+  font-size: 12px;
+}
+
+.street-mail-dialog { max-height: min(640px, calc(100% - 32px)); }
+.street-mail-list { display: grid; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.street-mail-list button { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 7px; text-align: left; }
+.street-mail-list time { margin-left: auto; }
+.street-mail-message h3 { margin-bottom: 4px; }
+.street-mail-body { margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
