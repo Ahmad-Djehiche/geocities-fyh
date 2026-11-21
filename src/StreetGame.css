@@ -168,6 +168,10 @@
   --mailbox-offset: min(42%, 75px);
 }
 
+.street-plot--east-north, .street-plot--east-south {
+  --mailbox-offset: max(-42%, -75px);
+}
+
 .street-mailbox {
   position: absolute;
   z-index: 3;
