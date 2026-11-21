@@ -90,10 +90,8 @@ export function HouseBuilder({ onClose, onSave, plotId }) {
   )
 }
 
-export function HouseEditor({ house, onClose, onSave, onDelete }) {
+export function HouseEditor({ house, onClose, onSave }) {
   const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const busy = saving || deleting
   const [error, setError] = useState('')
   const [name, setName] = useState(house.name)
   const [title, setTitle] = useState(house.title)
@@ -104,7 +102,7 @@ export function HouseEditor({ house, onClose, onSave, onDelete }) {
 
   async function submit(event) {
     event.preventDefault()
-    if (busy) return
+    if (saving) return
     const websiteClean = website.trim()
     const githubClean = github.trim()
     const websiteUrl = houseLink(websiteClean, 'website')
@@ -142,29 +140,14 @@ export function HouseEditor({ house, onClose, onSave, onDelete }) {
     }
   }
 
-  async function remove() {
-    if (busy || !window.confirm('Permanently delete your house and free its plot?')) return
-
-    setDeleting(true)
-    setError('')
-    try {
-      const deleteError = await onDelete()
-      if (deleteError) setError(deleteError)
-    } catch {
-      setError('Could not delete your house. Try again.')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
   function close() {
-    if (!busy) onClose()
+    if (!saving) onClose()
   }
 
   return (
     <Dialog className="house-dialog" labelId="editor-title" onClose={close}>
       <form className="builder" onSubmit={submit}>
-        <button type="button" className="close" onClick={close} disabled={busy} aria-label="Close form">×</button>
+        <button type="button" className="close" onClick={close} disabled={saving} aria-label="Close form">×</button>
         <h2 id="editor-title">Edit your house</h2>
         <label>Name<input name="name" required maxLength={24} placeholder="e.g. Alex" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label>Homepage title<input name="title" required maxLength={50} placeholder="Alex's corner" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
@@ -192,11 +175,8 @@ export function HouseEditor({ house, onClose, onSave, onDelete }) {
           <input name="github" type="url" maxLength={houseLinkMaxLength} placeholder="https://github.com/username" value={github} onChange={(e) => setGithub(e.target.value)} />
         </label>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="build-button" disabled={busy} type="submit">
+        <button className="build-button" disabled={saving} type="submit">
           {saving ? 'Updating…' : 'Update house'}
-        </button>
-        <button className="account-button" disabled={busy} type="button" onClick={remove}>
-          {deleting ? 'Deleting…' : 'Delete house'}
         </button>
       </form>
     </Dialog>
