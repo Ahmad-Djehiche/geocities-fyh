@@ -54,7 +54,9 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
       nearbyPlot = index
     }
   }
-  const nearbyHouse = houses[nearbyPlot]
+  const nearbyHouse = nearbyPlot === null
+    ? null
+    : houses.find((house) => Number(house.plot_id) === nearbyPlot + 1)
 
   useEffect(() => {
     if (paused) return
@@ -94,7 +96,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
       const key = event.key.toLowerCase()
       if (key === 'e' && !event.repeat) {
         if (nearbyHouse) onVisit(nearbyHouse)
-        else if (nearbyPlot === houses.length) onBuild()
+        else if (nearbyPlot !== null) onBuild()
       }
       if (!Object.hasOwn(directions, key)) return
 
@@ -126,7 +128,7 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
         <div className="street-road" aria-hidden="true" />
         <div className="street-trees" aria-hidden="true" />
         {plots.map((plot, index) => {
-          const house = houses[index]
+          const house = houses.find((candidate) => Number(candidate.plot_id) === index + 1)
           return (
             <div className={`street-plot street-plot--${plot}`} data-plot key={plot}>
               <button
@@ -168,9 +170,9 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           )}
         </div>
       </section>
-      {houses.length > plots.length && (
+      {houses.some((house) => Number(house.plot_id) > plots.length) && (
         <ul className="street-other-homes" aria-label="More homes">
-          {houses.slice(plots.length).map((house) => (
+          {houses.filter((house) => Number(house.plot_id) > plots.length).map((house) => (
             <li key={house.id}>
               <button type="button" onClick={() => onVisit(house)}>Visit {house.name}</button>
             </li>

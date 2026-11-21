@@ -4,9 +4,9 @@ import StreetGame from './StreetGame'
 import './App.css'
 
 const starterHouses = [
-  { id: '1', name: 'Maya', title: 'Maya’s mixtape garden', description: 'Songs for long walks and screenshots of beautiful bugs.', color: '#ff70a6', style: 'pixel' },
-  { id: '2', name: 'Theo', title: 'The tiny planet', description: 'A field journal from the other side of the keyboard.', color: '#ffd166', style: 'retro' },
-  { id: '3', name: 'Sam', title: 'Sam’s midnight arcade', description: 'High scores, fan art, and one very tiny spaceship.', color: '#06d6a0', style: 'arcade' },
+  { id: '1', name: 'Maya', title: "Maya's mixtape garden", description: 'Songs for long walks and screenshots of beautiful bugs.', color: '#ff70a6', style: 'pixel', plot_id: 1 },
+  { id: '2', name: 'Theo', title: 'The tiny planet', description: 'A field journal from the other side of the keyboard.', color: '#ffd166', style: 'retro', plot_id: 2 },
+  { id: '3', name: 'Sam', title: "Sam's midnight arcade", description: 'High scores, fan art, and one very tiny spaceship.', color: '#06d6a0', style: 'arcade', plot_id: 3 },
 ]
 
 const houseColors = ['#ff70a6', '#ffd166', '#06d6a0', '#7bdff2', '#cdb4db', '#ff9f1c']
@@ -29,7 +29,7 @@ function App() {
       const { data, error } = await supabase
         .from('houses')
         .select('*')
-        .order('created_at', { ascending: true })
+        .order('plot_id', { ascending: true })
       if (!error && data) setHouses(data)
     }
     loadHouses()
@@ -39,12 +39,14 @@ function App() {
     event.preventDefault()
     setSaving(true)
     const data = new FormData(event.currentTarget)
+    const nextPlotId = (houses.length > 0 ? Math.max(...houses.map(h => h.plot_id)) : 0) + 1
     const house = {
       name: data.get('name').trim(),
       title: data.get('title').trim(),
       description: data.get('description').trim(),
       color: houseColors[houses.length % houseColors.length],
       style: 'pixel',
+      plot_id: nextPlotId,
     }
     if (!house.name || !house.title) {
       setSaving(false)
@@ -101,7 +103,7 @@ function App() {
           <article className="homepage" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)} aria-label="Close homepage">×</button>
             <div className="homepage-banner" style={{ background: selected.color }}>
-              <span>★ {selected.name.toUpperCase()}’S HOME ★</span>
+              <span>★ {selected.name.toUpperCase()}'S HOME ★</span>
             </div>
             <h2>{selected.title}</h2>
             <p>{selected.description}</p>
@@ -117,7 +119,7 @@ function App() {
             <p className="eyebrow">NEW HOMEPAGE</p>
             <h2>Claim your lot</h2>
             <label>Name<input name="name" required maxLength="24" placeholder="e.g. Alex" /></label>
-            <label>Homepage title<input name="title" required maxLength="50" placeholder="Alex’s corner" /></label>
+            <label>Homepage title<input name="title" required maxLength="50" placeholder="Alex's corner" /></label>
             <label>About you<textarea name="description" maxLength="180" placeholder="What makes your little internet place yours?" /></label>
             <button className="build-button" disabled={saving} type="submit">{saving ? 'Building…' : 'Build house'}</button>
           </form>
