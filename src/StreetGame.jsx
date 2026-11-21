@@ -9,20 +9,24 @@ import playerLeftSprite from './assets/street-player-left.png'
 import playerRightSprite from './assets/street-player-right.png'
 import './StreetGame.css'
 
-function useFullscreen() {
+function useFullscreen(targetRef) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
+    const target = targetRef.current
+    if (!target) return
+    if (document.fullscreenElement === target) {
       document.exitFullscreen()
     } else {
-      document.documentElement.requestFullscreen()
+      target.requestFullscreen()
     }
-  }, [])
+  }, [targetRef])
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement)
-    document.addEventListener('fullscreenchange', onChange)
-    return () => document.removeEventListener('fullscreenchange', onChange)
-  }, [])
+    const target = targetRef.current
+    if (!target) return
+    const onChange = () => setIsFullscreen(!!target.contains(document.fullscreenElement))
+    target.addEventListener('fullscreenchange', onChange)
+    return () => target.removeEventListener('fullscreenchange', onChange)
+  }, [targetRef])
   return [isFullscreen, toggleFullscreen]
 }
 
@@ -63,7 +67,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
   const [flight, setFlight] = useState(null)
   const [position, setPosition] = useState({ x: null, y: null, facing: 'up', cameraOffset: 0 })
   const [layout, setLayout] = useState({ width: 0, height: 0, viewportHeight: 0, plots: [] })
-  const [isFullscreen, toggleFullscreen] = useFullscreen()
+  const [isFullscreen, toggleFullscreen] = useFullscreen(viewportRef)
 
   const housesByPlot = new Map()
   let lastPlot = 0
@@ -231,11 +235,13 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
     <>
       <p className="street-controls">
         <span><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</span>
-        <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
-          {isFullscreen ? '✕' : '⛶'}
-        </button>
       </p>
       <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={viewportRef} aria-label="Webstreet neighborhood">
+        {!isFullscreen && (
+          <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label="Enter fullscreen">
+            ⛶
+          </button>
+        )}
         <div
           className="street-world"
           ref={streetRef}

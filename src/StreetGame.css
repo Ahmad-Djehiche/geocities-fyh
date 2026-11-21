@@ -49,6 +49,10 @@
 }
 
 .street-fullscreen-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
   border: 2px solid #17161a;
   border-radius: 6px;
   background: #fffdf5;
