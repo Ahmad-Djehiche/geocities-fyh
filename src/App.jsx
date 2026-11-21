@@ -88,7 +88,8 @@ function App() {
 
       <StreetGame
         houses={houses}
-        paused={Boolean(selected) || formOpen}
+        paused={Boolean(selected)}
+        interactionsDisabled={formOpen}
         onVisit={setSelected}
         onBuild={() => setFormOpen(true)}
       />
