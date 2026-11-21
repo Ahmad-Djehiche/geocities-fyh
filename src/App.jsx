@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AccountDialog from './AccountDialog'
 import { supabase } from './lib/supabase'
 import StreetGame from './StreetGame'
 import './App.css'
@@ -22,6 +23,16 @@ function App() {
   const [selected, setSelected] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [session, setSession] = useState(undefined)
+
+  useEffect(() => {
+    if (!supabase) return
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     async function loadHouses() {
@@ -95,7 +106,12 @@ function App() {
     <main>
       <header className="topbar">
         <div className="brand"><span className="brand-mark">W</span> WEBSTREET</div>
-        <button className="build-button" onClick={() => setFormOpen(true)}>+ Build a house</button>
+        <div className="topbar-actions">
+          <button type="button" className="account-button" onClick={() => setAccountOpen(true)}>
+            {session ? 'Friends' : 'Sign in'}
+          </button>
+          <button className="build-button" onClick={() => setFormOpen(true)}>+ Build a house</button>
+        </div>
       </header>
 
       <section className="intro">
@@ -106,7 +122,8 @@ function App() {
 
       <StreetGame
         houses={houses}
-        paused={Boolean(selected) || formOpen}
+        paused={Boolean(selected)}
+        interactionsDisabled={formOpen || accountOpen}
         onVisit={setSelected}
         onBuild={() => setFormOpen(true)}
       />
@@ -115,6 +132,8 @@ function App() {
         <span>{houses.length} homes online</span>
         <span className="status"><i /> {supabase ? 'SHARED STREET' : 'LOCAL PREVIEW'}</span>
       </footer>
+
+      {accountOpen && <AccountDialog session={session} onClose={() => setAccountOpen(false)} />}
 
       {selected && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setSelected(null)}>
