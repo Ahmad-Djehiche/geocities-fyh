@@ -56,7 +56,7 @@ function followPlayer(playerHeight, cameraOffset, viewportHeight, worldHeight) {
   return Math.max(0, Math.min(worldHeight - viewportHeight, nextOffset))
 }
 
-export default function StreetGame({ houses, userId, paused, interactionsDisabled, vacantPlotAction, onVisit, onBuild }) {
+export default function StreetGame({ houses, userId, paused, interactionsDisabled, vacantPlotAction, onVisit, onEdit, onBuild }) {
   const viewportRef = useRef(null)
   const streetRef = useRef(null)
   const mailboxDialog = useRef(null)
@@ -151,10 +151,12 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
     ? null
     : housesByPlot.get(nearbyPlot + 1)
   const canInteract = !paused && !interactionsDisabled
+  const isOwnHouse = nearbyHouse?.owner_id === userId
 
   const interact = useEffectEvent(() => {
     if (!canInteract) return
     if (nearbyMailbox) openMailbox(nearbyMailbox)
+    else if (isOwnHouse && onEdit) onEdit(nearbyHouse)
     else if (nearbyHouse) onVisit(nearbyHouse)
     else if (nearbyPlot !== null) onBuild(nearbyPlot + 1)
   })
@@ -307,8 +309,8 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
                       className="street-plot-button"
                       type="button"
                       disabled={!canInteract}
-                      onClick={house ? () => onVisit(house) : () => onBuild(plotId)}
-                      aria-label={house ? `Visit ${house.name}'s homepage` : `${vacantPlotAction}, plot ${plotId}`}
+                      onClick={house ? () => { if (house.owner_id === userId && onEdit) onEdit(house); else onVisit(house); } : () => onBuild(plotId)}
+                      aria-label={house ? (house.owner_id === userId ? 'Edit your house' : `Visit ${house.name}'s homepage`) : `${vacantPlotAction}, plot ${plotId}`}
                     >
                       {house ? (
                         <img className="street-house" src={houseSprite(house.color, index)} alt="" />
@@ -346,7 +348,7 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
             role="status"
           >
             {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
-              <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : vacantPlotAction}</span>
+              <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : isOwnHouse ? 'Edit your house' : nearbyHouse ? `Visit ${nearbyHouse.name}` : vacantPlotAction}</span>
             )}
           </div>
         </div>
