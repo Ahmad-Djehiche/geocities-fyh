@@ -23,7 +23,7 @@ Before deploying, apply any pending migrations from `supabase/migrations` in fil
 
 Sign in and choose a vacant lot or use **Build a house** to take the first open plot. Pick a house colour and optionally add a personal website and a GitHub URL. Each account can build one house. After building, the top button and vacant plots open **Add a friend**.
 
-If another player claims the selected lot first, the database places the house on the next available plot. Open shared streets refresh automatically. Houses built after the four map plots fill up appear under **More homes**.
+If another player claims the selected lot first, the database places the house on the next available plot. Open shared streets refresh automatically. The street opens two more plots to the north once four houses are occupied and adds another pair at each later even milestone. Apply `supabase/migrations/20261121000004_expand_plot_allocation.sql` to let shared builders claim a specific unlocked northern plot.
 
 Open **Friends** and send a request to another player’s username. The recipient can accept it from **Incoming requests**. Both players will then see each other under **Your friends**. The open Friends panel refreshes automatically.
 
