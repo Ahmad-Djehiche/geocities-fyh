@@ -168,6 +168,10 @@
   --mailbox-offset: min(42%, 75px);
 }
 
+.street-plot--east-north, .street-plot--east-south {
+  --mailbox-offset: max(-42%, -75px);
+}
+
 .street-mailbox {
   position: absolute;
   z-index: 3;
@@ -236,6 +240,7 @@
 .street-pig-flight {
   position: absolute;
   z-index: 6;
+  --pig-rise: 0px;
   left: calc(50% + var(--mailbox-offset) - 28px);
   bottom: 32px;
   width: 58px;

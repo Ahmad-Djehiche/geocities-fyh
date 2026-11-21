@@ -86,6 +86,26 @@ function App() {
     if (!saving) setBuildRequest(null)
   }
 
+  useEffect(() => {
+    if (!supabase) {
+      localStorage.setItem('webstreet-houses', JSON.stringify(houses))
+    }
+  }, [houses])
+
+  async function removeHouse(houseId) {
+    if (supabase) {
+      const { error } = await supabase
+        .from('houses')
+        .delete()
+        .eq('id', houseId)
+      if (!error) {
+        setHouses((current) => current.filter((h) => h.id !== houseId))
+      }
+    } else {
+      setHouses((current) => current.filter((h) => h.id !== houseId))
+    }
+  }
+
   async function addHouse(event) {
     event.preventDefault()
     if (saving) return
@@ -104,10 +124,11 @@ function App() {
 
     setSaving(true)
     setBuildError('')
+    const plotId = availablePlot(houses, buildRequest.plotId)
     if (supabase) {
       const { error } = await supabase
         .from('houses')
-        .insert({ ...house, plot_id: buildRequest.plotId })
+        .insert({ ...house, plot_id: plotId })
       if (error) {
         setBuildError('Could not save your house. Try again.')
         setSaving(false)
@@ -118,7 +139,7 @@ function App() {
       const next = {
         ...house,
         id: crypto.randomUUID(),
-        plot_id: availablePlot(houses, buildRequest.plotId),
+        plot_id: plotId,
       }
       const updated = [...houses, next]
       try {
