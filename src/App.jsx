@@ -23,6 +23,7 @@ function App() {
   const [selected, setSelected] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [accountOpen, setAccountOpen] = useState(false)
   const [session, setSession] = useState(undefined)
 
@@ -46,6 +47,12 @@ function App() {
     loadHouses()
   }, [])
 
+  useEffect(() => {
+    if (!supabase) {
+      localStorage.setItem('webstreet-houses', JSON.stringify(houses))
+    }
+  }, [houses])
+
   async function removeHouse(houseId) {
     if (supabase) {
       const { error } = await supabase
@@ -56,15 +63,14 @@ function App() {
         setHouses((current) => current.filter((h) => h.id !== houseId))
       }
     } else {
-      const updated = houses.filter((h) => h.id !== houseId)
-      setHouses(updated)
-      localStorage.setItem('webstreet-houses', JSON.stringify(updated))
+      setHouses((current) => current.filter((h) => h.id !== houseId))
     }
   }
 
   async function addHouse(event) {
     event.preventDefault()
     setSaving(true)
+    setError('')
     const data = new FormData(event.currentTarget)
     const plotIds = houses.map(h => h.plot_id).sort((a, b) => a - b)
     let nextPlotId = 1
@@ -82,23 +88,28 @@ function App() {
       return
     }
 
-    if (supabase) {
-      const { data: created, error } = await supabase
-        .from('houses')
-        .insert(house)
-        .select()
-        .single()
-      if (!error && created) {
+    try {
+      if (supabase) {
+        const { data: created, error: supaError } = await supabase
+          .from('houses')
+          .insert(house)
+          .select()
+          .single()
+        if (supaError || !created) {
+          setError(supaError?.message || 'Failed to save house. Please try again.')
+          setSaving(false)
+          return
+        }
         setHouses((current) => [...current, created])
+      } else {
+        const next = { ...house, id: crypto.randomUUID() }
+        setHouses((current) => [...current, next])
       }
-    } else {
-      const next = { ...house, id: crypto.randomUUID() }
-      const updated = [...houses, next]
-      setHouses(updated)
-      localStorage.setItem('webstreet-houses', JSON.stringify(updated))
+      event.currentTarget.reset()
+      setFormOpen(false)
+    } catch (e) {
+      setError('Something went wrong. Please try again.')
     }
-    event.currentTarget.reset()
-    setFormOpen(false)
     setSaving(false)
   }
 
@@ -152,9 +163,10 @@ function App() {
       {formOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setFormOpen(false)}>
           <form className="builder" role="dialog" aria-modal="true" onSubmit={addHouse} onMouseDown={(event) => event.stopPropagation()}>
-            <button type="button" className="close" onClick={() => setFormOpen(false)} aria-label="Close form">×</button>
+            <button type="button" className="close" onClick={() => { setFormOpen(false); setError('') }} aria-label="Close form">×</button>
             <p className="eyebrow">NEW HOMEPAGE</p>
             <h2>Claim your lot</h2>
+            {error && <p className="form-error">{error}</p>}
             <label>Name<input name="name" required maxLength="24" placeholder="e.g. Alex" /></label>
             <label>Homepage title<input name="title" required maxLength="50" placeholder="Alex's corner" /></label>
             <label>About you<textarea name="description" maxLength="180" placeholder="What makes your little internet place yours?" /></label>
