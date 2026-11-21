@@ -90,6 +90,99 @@ export function HouseBuilder({ onClose, onSave, plotId }) {
   )
 }
 
+export function HouseEditor({ house, onClose, onSave }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [name, setName] = useState(house.name)
+  const [title, setTitle] = useState(house.title)
+  const [description, setDescription] = useState(house.description || '')
+  const [color, setColor] = useState(house.color)
+  const [website, setWebsite] = useState(house.website_url || '')
+  const [github, setGithub] = useState(house.github_url || '')
+
+  async function submit(event) {
+    event.preventDefault()
+    if (saving) return
+    const websiteClean = website.trim()
+    const githubClean = github.trim()
+    const websiteUrl = houseLink(websiteClean, 'website')
+    const githubUrl = houseLink(githubClean, 'github')
+
+    if (!name.trim() || !title.trim()) {
+      setError('Enter a name and homepage title.')
+      return
+    }
+    if (websiteClean && !websiteUrl) {
+      setError('Enter a personal website URL that starts with https:// or http://.')
+      return
+    }
+    if (githubClean && !githubUrl) {
+      setError('Enter a GitHub URL such as https://github.com/username.')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+    try {
+      const saveError = await onSave({
+        name: name.trim(),
+        title: title.trim(),
+        description: description.trim(),
+        color,
+        website_url: websiteUrl || null,
+        github_url: githubUrl || null,
+      })
+      if (saveError) setError(saveError)
+    } catch {
+      setError('Could not update your house. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function close() {
+    if (!saving) onClose()
+  }
+
+  return (
+    <Dialog className="house-dialog" labelId="editor-title" onClose={close}>
+      <form className="builder" onSubmit={submit}>
+        <button type="button" className="close" onClick={close} disabled={saving} aria-label="Close form">×</button>
+        <h2 id="editor-title">Edit your house</h2>
+        <label>Name<input name="name" required maxLength={24} placeholder="e.g. Alex" value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <label>Homepage title<input name="title" required maxLength={50} placeholder="Alex's corner" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+        <label>About you<textarea name="description" maxLength={180} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
+        <fieldset className="house-colors">
+          <legend>House colour</legend>
+          <div className="house-color-options">
+            {houseColors.map((option) => (
+              <label className="house-color-option" key={option.color}>
+                <input type="radio" name="color" value={option.color} checked={option.color === color} onChange={() => setColor(option.color)} />
+                <span>
+                  <img src={option.sprite} alt="" />
+                  {option.name}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <label>
+          Personal website (optional)
+          <input name="website" type="url" maxLength={houseLinkMaxLength} placeholder="https://example.com" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        </label>
+        <label>
+          GitHub (optional)
+          <input name="github" type="url" maxLength={houseLinkMaxLength} placeholder="https://github.com/username" value={github} onChange={(e) => setGithub(e.target.value)} />
+        </label>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="build-button" disabled={saving} type="submit">
+          {saving ? 'Updating…' : 'Update house'}
+        </button>
+      </form>
+    </Dialog>
+  )
+}
+
 export function HouseHomepage({ house, onClose }) {
   const website = houseLink(house.website_url, 'website')
   const github = houseLink(house.github_url, 'github')

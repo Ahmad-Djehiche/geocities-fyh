@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import AccountDialog from './AccountDialog'
-import { HouseBuilder, HouseHomepage } from './HouseDialogs'
+import { HouseBuilder, HouseEditor, HouseHomepage } from './HouseDialogs'
 import { supabase } from './lib/supabase'
 import StreetGame from './StreetGame'
 import './App.css'
@@ -55,6 +55,7 @@ function App() {
     ? Boolean(userId && ownership?.userId === userId && ownership.hasHouse)
     : hasPreviewHouse(houses)
   const buildRequest = dialog?.type === 'build' ? dialog : null
+  const editRequest = dialog?.type === 'edit' ? houses.find((house) => house.id === dialog.houseId) : null
   const showBuilder = Boolean(buildRequest && !ownsHouse && !checkingOwnership && (!supabase || userId))
   const showAccount = dialog?.type === 'account' || Boolean(buildRequest && !showBuilder)
   const selected = dialog?.type === 'visit' ? houses.find((house) => house.id === dialog.houseId) : null
@@ -191,6 +192,32 @@ function App() {
     }
   }
 
+  async function updateHouse(details) {
+    if (!editRequest) return 'No house selected for editing.'
+    if (supabase) {
+      const { error } = await supabase
+        .from('houses')
+        .update(details)
+        .eq('id', editRequest.id)
+        .eq('owner_id', userId)
+      if (error) return 'Could not update your house. Try again.'
+      closeDialog()
+      setSharedStreet((current) => current && current.userId === userId
+        ? { ...current, houses: current.houses.map((h) => h.id === editRequest.id ? { ...h, ...details } : h) }
+        : current)
+      refreshStreet()
+    } else {
+      const updated = houses.map((h) => h.id === editRequest.id ? { ...h, ...details } : h)
+      try {
+        localStorage.setItem(previewStorageKey, JSON.stringify(updated))
+      } catch {
+        return 'Could not save your house in this browser.'
+      }
+      closeDialog()
+      setPreviewHouses(updated)
+    }
+  }
+
   return (
     <main>
       <header className="topbar">
@@ -219,10 +246,11 @@ function App() {
       <StreetGame
         houses={houses}
         userId={userId}
-        paused={Boolean(selected)}
+        paused={Boolean(selected || editRequest)}
         interactionsDisabled={Boolean(dialog) || !streetHouses}
         vacantPlotAction={ownsHouse ? 'Add a friend' : 'Claim a plot'}
         onVisit={(house) => setDialog({ type: 'visit', houseId: house.id })}
+        onEdit={(house) => setDialog({ type: 'edit', houseId: house.id })}
         onBuild={openBuild}
       />
 
@@ -242,6 +270,9 @@ function App() {
       {selected && <HouseHomepage house={selected} onClose={closeDialog} />}
       {showBuilder && (
         <HouseBuilder key={userId} plotId={buildRequest.plotId} onClose={closeDialog} onSave={addHouse} />
+      )}
+      {editRequest && (
+        <HouseEditor key={editRequest.id} house={editRequest} onClose={closeDialog} onSave={updateHouse} />
       )}
     </main>
   )
