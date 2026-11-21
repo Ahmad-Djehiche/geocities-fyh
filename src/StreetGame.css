@@ -1,0 +1,200 @@
+.street-map {
+  position: relative;
+  isolation: isolate;
+  width: min(calc(100% - 32px), 860px);
+  height: clamp(440px, 52vw, 550px);
+  margin: 0 auto 24px;
+  overflow: hidden;
+  border: 4px solid #283f37;
+  box-shadow: 5px 5px #283f3740;
+  background-color: #83b962;
+  background-image:
+    conic-gradient(from 90deg at 5px 4px, transparent 75%, #a4ce72 0),
+    conic-gradient(from 90deg at 3px 3px, transparent 75%, #6fa855 0);
+  background-size: 44px 52px, 61px 47px;
+  background-position: 6px 12px, 17px 32px;
+  background-repeat: repeat;
+}
+
+.street-road {
+  position: absolute;
+  inset: 0 39%;
+  border-inline: 5px solid #9e6b52;
+  box-shadow: inset 5px 0 #eab57b, inset -5px 0 #bf875d, 4px 0 #6d9f50, -4px 0 #6d9f50;
+  background:
+    repeating-linear-gradient(0deg, #e2a771 0 3px, transparent 3px 28px) center / 4px 100% no-repeat,
+    #f2c990;
+}
+
+.street-trees {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.street-trees::before, .street-trees::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8%;
+  background:
+    conic-gradient(from 90deg at 7px 6px, transparent 75%, #97c467 0) 5px 6px / 24px 27px,
+    repeating-linear-gradient(0deg, #477d46 0 5px, #5d9850 5px 24px, #6ca657 24px 28px);
+  clip-path: polygon(0 0, 74% 0, 74% 9%, 100% 9%, 100% 22%, 74% 22%, 74% 35%, 100% 35%, 100% 48%, 74% 48%, 74% 61%, 100% 61%, 100% 74%, 74% 74%, 74% 87%, 100% 87%, 100% 100%, 0 100%);
+}
+
+.street-trees::before { left: 0; }
+.street-trees::after { right: 0; transform: scaleX(-1); }
+
+.street-plot {
+  position: absolute;
+  top: var(--plot-y);
+  left: var(--plot-x);
+  width: 39%;
+  height: 34%;
+  display: grid;
+  place-items: center;
+}
+
+.street-plot--west-north, .street-plot--west-south { --plot-x: 0%; }
+.street-plot--east-north, .street-plot--east-south { --plot-x: 61%; }
+.street-plot--west-north, .street-plot--east-north { --plot-y: 8%; }
+.street-plot--west-south, .street-plot--east-south { --plot-y: 51%; }
+
+.street-plot::before {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  width: 50%;
+  height: 14px;
+  background: #e6b983;
+  border-block: 3px solid #b48f62;
+}
+
+.street-plot--west-north::before, .street-plot--west-south::before { right: 0; }
+.street-plot--east-north::before, .street-plot--east-south::before { left: 0; }
+
+.street-plot-button {
+  position: relative;
+  width: min(78%, 136px);
+  height: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #283f37;
+  transition: transform 120ms ease-out;
+}
+
+.street-plot-button:hover { transform: translateY(-3px); }
+.street-plot-button:focus-visible { outline: 3px solid #263c34; outline-offset: 3px; }
+
+.street-house {
+  width: 100%;
+  aspect-ratio: 1.2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(4px 5px #35573b70);
+}
+
+.street-house-roof {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 57%;
+  clip-path: polygon(0 78%, 10% 78%, 10% 58%, 20% 58%, 20% 38%, 30% 38%, 30% 18%, 40% 18%, 40% 0, 60% 0, 60% 18%, 70% 18%, 70% 38%, 80% 38%, 80% 58%, 90% 58%, 90% 78%, 100% 78%, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(0deg, #2f25374d 0 2px, transparent 2px 10px), var(--roof-color, #dd7980);
+  box-shadow: inset 0 -6px #392936;
+}
+
+.street-house-front {
+  width: 83%;
+  height: 43%;
+  display: flex;
+  align-items: end;
+  justify-content: space-evenly;
+  border: 3px solid #392936;
+  border-top: 0;
+  background: repeating-linear-gradient(0deg, #dfad83 0 2px, #ffe1ad 2px 10px);
+}
+
+.street-window {
+  align-self: center;
+  width: 20%;
+  height: 45%;
+  border: 2px solid #53465c;
+  background: linear-gradient(90deg, transparent 43%, #53465c 43% 57%, transparent 57%), #9fdae0;
+}
+
+.street-door {
+  width: 24%;
+  height: 80%;
+  border: 2px solid #423447;
+  border-bottom: 0;
+  background: radial-gradient(circle at 72% 58%, #ffdb88 0 1px, transparent 2px), #77607a;
+}
+
+.street-vacant-sign {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 34px;
+  margin-bottom: 16px;
+  border: 3px solid #684b3d;
+  box-shadow: 3px 3px #684b3d50;
+  background: #ffdb95;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.street-vacant-sign::after {
+  content: '';
+  position: absolute;
+  bottom: 27px;
+  width: 7px;
+  height: 16px;
+  background: #684b3d;
+}
+
+.street-plot-label {
+  max-width: 100%;
+  padding: 2px 5px;
+  overflow: hidden;
+  border: 2px solid #40583e;
+  background: #f9edbf;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.street-player {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 48px;
+  height: 48px;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 3px #69493960);
+  pointer-events: none;
+}
+
+.street-other-homes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 auto 24px;
+  padding: 0 16px;
+  width: min(100%, 860px);
+  list-style: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-plot-button { transition: none; }
+}
