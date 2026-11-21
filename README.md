@@ -35,7 +35,9 @@ Visitors can view houses on the shared street. Local preview allows one custom h
 
 ## House mail
 
-Apply the migrations in order, including `20261121000002_customize_owned_houses.sql` and `20261121000003_house_messages.sql`. The latter creates the private inbox and enables Supabase Realtime updates. The app also refreshes the inbox periodically to catch deliveries after a disconnect.
+On the shared Supabase project, apply the house ownership migration first. If `public.house_messages` is missing, run `20261121000003_house_messages.sql` in the Supabase SQL Editor, then run `20261121000005_prevent_self_addressed_house_mail.sql`. If the mailbox table is already installed, apply only the latter. Publishing the frontend does not run these database migrations.
+
+New letters are delivered through Supabase Realtime, with periodic inbox refreshes to catch messages missed while offline. Only the recipient can read a letter, and the database rejects self-addressed mail.
 
 On the shared street, sign in and walk to another player's mailbox. Send a letter to launch the pig from that mailbox. The recipient can read it from **Inbox** or their own mailbox. When the recipient's house is on screen, the pig descends to its mailbox. Houses created before account ownership need an assigned owner to receive mail.
 

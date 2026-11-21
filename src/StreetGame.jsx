@@ -252,13 +252,13 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
     const queued = pendingLetters.current.get(userId) ?? new Map()
     delivered.current.set(userId, seen)
     pendingLetters.current.set(userId, queued)
-    for (const letter of inbox.unread?.letters ?? []) {
+    for (const letter of [...(inbox.unread?.letters ?? []), ...(inbox.liveDeliveries ?? [])]) {
       if (!seen.has(letter.id)) queued.set(letter.id, letter)
     }
     if (arrival?.userId === userId || !deliveryVisible || mailbox || paused || interactionsDisabled) return
     const message = Array.from(queued.values()).find((letter) => letter.house_id === deliveryHouseId)
     if (message) setArrival({ id: message.id, userId, plot: Number(deliveryPlot) })
-  }, [arrival, deliveryHouseId, deliveryPlot, deliveryVisible, inbox.unread, interactionsDisabled, mailbox, paused, userId])
+  }, [arrival, deliveryHouseId, deliveryPlot, deliveryVisible, inbox.liveDeliveries, inbox.unread, interactionsDisabled, mailbox, paused, userId])
 
   function sendMessage(plot) {
     setDeparture({ id: crypto.randomUUID(), plot })
@@ -367,6 +367,7 @@ export default function StreetGame({ houses, userId, paused, interactionsDisable
                   if (deliveryVisible) {
                     delivered.current.get(flight.userId)?.add(flight.id)
                     pendingLetters.current.get(flight.userId)?.delete(flight.id)
+                    inbox.acknowledgeDelivery(flight.id)
                   }
                   setArrival((current) => current?.id === flight.id ? null : current)
                 } else {
