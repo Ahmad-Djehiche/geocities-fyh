@@ -188,11 +188,11 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
     <>
       <p className="street-controls">
         <span><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</span>
+      </p>
+      <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={streetRef} aria-label="Webstreet neighborhood">
         <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
           {isFullscreen ? '✕' : '⛶'}
         </button>
-      </p>
-      <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={streetRef} aria-label="Webstreet neighborhood">
         <div className="street-road" aria-hidden="true" />
         <div className="street-trees" aria-hidden="true" />
         {plots.map((plot, index) => {
