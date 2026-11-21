@@ -3,9 +3,9 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 const starterHouses = [
-  { id: '1', name: 'Maya', title: 'Maya's mixtape garden', description: 'Songs for long walks and screenshots of beautiful bugs.', color: '#ff70a6', style: 'pixel', plot_id: 1 },
+  { id: '1', name: 'Maya', title: "Maya's mixtape garden", description: 'Songs for long walks and screenshots of beautiful bugs.', color: '#ff70a6', style: 'pixel', plot_id: 1 },
   { id: '2', name: 'Theo', title: 'The tiny planet', description: 'A field journal from the other side of the keyboard.', color: '#ffd166', style: 'retro', plot_id: 2 },
-  { id: '3', name: 'Sam', title: 'Sam's midnight arcade', description: 'High scores, fan art, and one very tiny spaceship.', color: '#06d6a0', style: 'arcade', plot_id: 3 },
+  { id: '3', name: 'Sam', title: "Sam's midnight arcade", description: 'High scores, fan art, and one very tiny spaceship.', color: '#06d6a0', style: 'arcade', plot_id: 3 },
 ]
 
 const houseColors = ['#ff70a6', '#ffd166', '#06d6a0', '#7bdff2', '#cdb4db', '#ff9f1c']
