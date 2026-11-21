@@ -87,7 +87,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
   const openMailbox = useCallback((plot) => {
     if (plot !== nearbyMailbox) return
     const house = houses.find((candidate) => Number(candidate.plot_id) === plots.indexOf(plot) + 1)
-    if (house) setMailbox({ name: house.name, plot })
+    if (house) setMailbox({ houseId: house.id, name: house.name, plot })
   }, [houses, nearbyMailbox])
 
   let nearbyPlot = null
@@ -173,8 +173,13 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
 
   useEffect(() => {
     const dialog = mailboxDialog.current
-    if (mailbox && !dialog.open) dialog.showModal()
-  }, [mailbox])
+    if (!mailbox) return
+    if (!houses.some((house) => house.id === mailbox.houseId)) {
+      dialog.close()
+    } else if (!dialog.open) {
+      dialog.showModal()
+    }
+  }, [mailbox, houses])
 
   function sendMessage(event) {
     event.preventDefault()
@@ -227,7 +232,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
                   <span aria-hidden="true" />
                 </button>
               )}
-              {flight?.plot === plot && (
+              {house && flight?.plot === plot && (
                 <span
                   className="street-pig-flight"
                   key={flight.id}
