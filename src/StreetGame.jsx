@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
-import playerSprite from './assets/street-player.png'
 import { houseSprite } from './lib/houses'
+import playerBackSprite from './assets/street-player-back.png'
+import playerFrontSprite from './assets/street-player.png'
+import playerLeftSprite from './assets/street-player-left.png'
+import playerRightSprite from './assets/street-player-right.png'
 import './StreetGame.css'
 
 function useFullscreen(targetRef) {
@@ -25,6 +28,13 @@ function useFullscreen(targetRef) {
 }
 
 const plots = ['west-north', 'east-north', 'west-south', 'east-south']
+const playerSprites = {
+  up: playerBackSprite,
+  down: playerFrontSprite,
+  left: playerLeftSprite,
+  right: playerRightSprite,
+}
+
 const directions = {
   a: 'left', arrowleft: 'left',
   d: 'right', arrowright: 'right',
@@ -41,7 +51,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
   const flightId = useRef(0)
   const [mailbox, setMailbox] = useState(null)
   const [flight, setFlight] = useState(null)
-  const [position, setPosition] = useState({ x: null, y: null })
+  const [position, setPosition] = useState({ x: null, y: null, facing: 'up' })
   const [layout, setLayout] = useState({ width: 0, height: 0, plots: [] })
   const [isFullscreen, toggleFullscreen] = useFullscreen(streetRef)
 
@@ -63,8 +73,9 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
       })
       setLayout({ width, height, plots: plotPositions })
       setPosition((current) => current.x === null
-        ? { x: width / 2, y: height * 0.06 }
+        ? { ...current, x: width / 2, y: height * 0.06 }
         : {
+            ...current,
             x: Math.min(width - 24, Math.max(24, current.x)),
             y: Math.min(height - 24, Math.max(24, current.y)),
           })
@@ -127,7 +138,9 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
 
       if (dx || dy) {
         const step = playerSpeed * elapsed / Math.hypot(dx, dy)
+        const facing = dx ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'up' : 'down')
         setPosition((current) => ({
+          facing,
           x: Math.max(24, Math.min(layout.width - 24, (current.x ?? layout.width / 2) + dx * step)),
           y: Math.max(24, Math.min(layout.height - 24, (current.y ?? layout.height * 0.06) + dy * step)),
         }))
@@ -245,7 +258,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
         })}
         <img
           className="street-player"
-          src={playerSprite}
+          src={playerSprites[position.facing]}
           alt=""
           style={{ left: position.x ?? '50%', bottom: position.y ?? '6%' }}
         />
