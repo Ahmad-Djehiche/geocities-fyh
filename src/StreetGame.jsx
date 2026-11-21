@@ -33,12 +33,13 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
       const width = street.clientWidth
       const height = street.clientHeight
       const streetRect = street.getBoundingClientRect()
-      const plotPositions = Array.from(street.querySelectorAll('[data-plot]'), (plot) => {
+      const plotPositions = Array.from(street.querySelectorAll('[data-plot]'), (plot, index) => {
+        const mailboxSide = index % 2 === 0 ? 1 : -1
         const rect = plot.getBoundingClientRect()
         return {
           x: rect.left - streetRect.left + rect.width / 2,
           y: rect.top - streetRect.top + rect.height / 2,
-          mailboxX: rect.left - streetRect.left - street.clientLeft + rect.width / 2 + Math.min(rect.width * 0.42, 75),
+          mailboxX: rect.left - streetRect.left - street.clientLeft + rect.width / 2 + mailboxSide * Math.min(rect.width * 0.42, 75),
           mailboxY: rect.bottom - streetRect.top - street.clientTop - 30,
         }
       })
