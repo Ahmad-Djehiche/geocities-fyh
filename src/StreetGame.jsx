@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
-import playerSprite from './assets/street-player.png'
 import { houseSprite } from './lib/houses'
+import playerBackSprite from './assets/street-player-back.png'
+import playerFrontSprite from './assets/street-player.png'
+import playerLeftSprite from './assets/street-player-left.png'
+import playerRightSprite from './assets/street-player-right.png'
 import './StreetGame.css'
 
 function useFullscreen(targetRef) {
@@ -9,7 +12,7 @@ function useFullscreen(targetRef) {
     const target = targetRef.current
     if (!target) return
     if (document.fullscreenElement === target) {
-      target.exitFullscreen()
+      document.exitFullscreen()
     } else {
       target.requestFullscreen()
     }
@@ -25,6 +28,13 @@ function useFullscreen(targetRef) {
 }
 
 const plots = ['west-north', 'east-north', 'west-south', 'east-south']
+const playerSprites = {
+  up: playerBackSprite,
+  down: playerFrontSprite,
+  left: playerLeftSprite,
+  right: playerRightSprite,
+}
+
 const directions = {
   a: 'left', arrowleft: 'left',
   d: 'right', arrowright: 'right',
@@ -34,19 +44,42 @@ const directions = {
 const playerSpeed = 230
 const interactionDistance = 110
 const mailboxDistance = 36
+const cameraUpperLine = 0.75
+const cameraLowerLine = 0.25
+
+function followPlayer(playerHeight, cameraOffset, viewportHeight, worldHeight) {
+  const upperLimit = playerHeight - viewportHeight * cameraUpperLine
+  const lowerLimit = playerHeight - viewportHeight * cameraLowerLine
+  const nextOffset = Math.max(upperLimit, Math.min(cameraOffset, lowerLimit))
+  return Math.max(0, Math.min(worldHeight - viewportHeight, nextOffset))
+}
 
 export default function StreetGame({ houses, paused, interactionsDisabled, vacantPlotAction, onVisit, onBuild }) {
+  const viewportRef = useRef(null)
   const streetRef = useRef(null)
   const mailboxDialog = useRef(null)
   const flightId = useRef(0)
   const [mailbox, setMailbox] = useState(null)
   const [flight, setFlight] = useState(null)
-  const [position, setPosition] = useState({ x: null, y: null })
-  const [layout, setLayout] = useState({ width: 0, height: 0, plots: [] })
-  const [isFullscreen, toggleFullscreen] = useFullscreen(streetRef)
+  const [position, setPosition] = useState({ x: null, y: null, facing: 'up', cameraOffset: 0 })
+  const [layout, setLayout] = useState({ width: 0, height: 0, viewportHeight: 0, plots: [] })
+  const [isFullscreen, toggleFullscreen] = useFullscreen(viewportRef)
+
+  const housesByPlot = new Map()
+  let lastPlot = 0
+  for (const house of houses) {
+    const plotId = Number(house.plot_id)
+    if (!Number.isSafeInteger(plotId) || plotId < 1) continue
+    if (!housesByPlot.has(plotId)) housesByPlot.set(plotId, house)
+    lastPlot = Math.max(lastPlot, plotId)
+  }
+  const unlockedLevels = Math.max(0, Math.floor((housesByPlot.size - plots.length) / 2) + 1)
+  const occupiedLevels = Math.ceil((lastPlot - plots.length) / 2)
+  const extraLevels = Math.max(unlockedLevels, occupiedLevels)
 
   useEffect(() => {
     const street = streetRef.current
+    const viewport = viewportRef.current
     function measure() {
       const width = street.clientWidth
       const height = street.clientHeight
@@ -61,10 +94,12 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
           mailboxY: rect.bottom - streetRect.top - street.clientTop - 30,
         }
       })
-      setLayout({ width, height, plots: plotPositions })
+      const viewportHeight = viewport.clientHeight
+      setLayout({ width, height, viewportHeight, plots: plotPositions })
       setPosition((current) => current.x === null
-        ? { x: width / 2, y: height * 0.06 }
+        ? { ...current, x: width / 2, y: viewportHeight * 0.06 }
         : {
+            ...current,
             x: Math.min(width - 24, Math.max(24, current.x)),
             y: Math.min(height - 24, Math.max(24, current.y)),
           })
@@ -73,22 +108,24 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
     const observer = new ResizeObserver(measure)
     observer.observe(street)
     return () => observer.disconnect()
-  }, [])
+  }, [extraLevels])
 
   const playerX = position.x ?? layout.width / 2
-  const playerY = layout.height - (position.y ?? layout.height * 0.06)
-  const nearbyMailbox = plots.find((plot, index) => {
-    const bounds = layout.plots[index]
-    const hasHouse = houses.some((house) => Number(house.plot_id) === index + 1)
-    return hasHouse && bounds &&
-      Math.hypot(playerX - bounds.mailboxX, playerY - bounds.mailboxY) <= mailboxDistance
-  })
+  const playerHeight = position.y ?? layout.viewportHeight * 0.06
+  const playerY = layout.height - playerHeight
+  const cameraOffset = followPlayer(
+    playerHeight, position.cameraOffset, layout.viewportHeight, layout.height,
+  )
+  const nearbyMailbox = layout.plots.findIndex((bounds, index) =>
+    housesByPlot.has(index + 1) &&
+    Math.hypot(playerX - bounds.mailboxX, playerY - bounds.mailboxY) <= mailboxDistance,
+  ) + 1
 
-  const openMailbox = useCallback((plot) => {
-    if (plot !== nearbyMailbox) return
-    const house = houses.find((candidate) => Number(candidate.plot_id) === plots.indexOf(plot) + 1)
-    if (house) setMailbox({ houseId: house.id, name: house.name, plot })
-  }, [houses, nearbyMailbox])
+  function openMailbox(plotId) {
+    if (plotId !== nearbyMailbox) return
+    const house = housesByPlot.get(plotId)
+    if (house) setMailbox({ houseId: house.id, name: house.name, plot: plotId })
+  }
 
   let nearbyPlot = null
   let closestDistance = interactionDistance
@@ -101,7 +138,7 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
   }
   const nearbyHouse = nearbyPlot === null
     ? null
-    : houses.find((house) => Number(house.plot_id) === nearbyPlot + 1)
+    : housesByPlot.get(nearbyPlot + 1)
   const canInteract = !paused && !interactionsDisabled
 
   const interact = useEffectEvent(() => {
@@ -127,10 +164,16 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
 
       if (dx || dy) {
         const step = playerSpeed * elapsed / Math.hypot(dx, dy)
-        setPosition((current) => ({
-          x: Math.max(24, Math.min(layout.width - 24, (current.x ?? layout.width / 2) + dx * step)),
-          y: Math.max(24, Math.min(layout.height - 24, (current.y ?? layout.height * 0.06) + dy * step)),
-        }))
+        const facing = dx ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'up' : 'down')
+        setPosition((current) => {
+          const y = Math.max(24, Math.min(layout.height - 24, (current.y ?? layout.viewportHeight * 0.06) + dy * step))
+          return {
+            facing,
+            x: Math.max(24, Math.min(layout.width - 24, (current.x ?? layout.width / 2) + dx * step)),
+            y,
+            cameraOffset: followPlayer(y, current.cameraOffset, layout.viewportHeight, layout.height),
+          }
+        })
       }
       frame = requestAnimationFrame(move)
     }
@@ -194,74 +237,86 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
       <p className="street-controls">
         <span><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</span>
       </p>
-      <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={streetRef} aria-label="Webstreet neighborhood">
+      <section className={`street-map${isFullscreen ? ' street-map--fullscreen' : ''}`} ref={viewportRef} aria-label="Webstreet neighborhood">
         {!isFullscreen && (
           <button className="street-fullscreen-btn" type="button" onClick={toggleFullscreen} aria-label="Enter fullscreen">
             ⛶
           </button>
         )}
-        <div className="street-road" aria-hidden="true" />
-        <div className="street-trees" aria-hidden="true" />
-        {plots.map((plot, index) => {
-          const house = houses.find((candidate) => Number(candidate.plot_id) === index + 1)
-          return (
-            <div className={`street-plot street-plot--${plot}`} data-plot key={plot}>
-              <button
-                className="street-plot-button"
-                type="button"
-                disabled={!canInteract}
-                onClick={house ? () => onVisit(house) : () => onBuild(index + 1)}
-                aria-label={house ? `Visit ${house.name}'s homepage` : `${vacantPlotAction}, plot ${index + 1}`}
-              >
-                {house ? (
-                  <img className="street-house" src={houseSprite(house.color, index)} alt="" />
-                ) : (
-                  <span className="street-vacant-sign" aria-hidden="true">+</span>
-                )}
-                <span className="street-plot-label">{house ? house.name : vacantPlotAction}</span>
-              </button>
-              {house && (
-                <button
-                  className="street-mailbox"
-                  type="button"
-                  aria-label={`Open mailbox for ${house.name}`}
-                  aria-disabled={plot !== nearbyMailbox}
-                  title={plot === nearbyMailbox ? 'Open mailbox' : 'Walk up to the mailbox to use it'}
-                  onClick={() => openMailbox(plot)}
-                >
-                  <span aria-hidden="true" />
-                </button>
-              )}
-              {house && flight?.plot === plot && (
-                <span
-                  className="street-pig-flight"
-                  key={flight.id}
-                  style={{ '--pig-rise': `-${layout.plots[index].mailboxY + 70}px` }}
-                  aria-hidden="true"
-                  onAnimationEnd={() => setFlight((current) => current?.id === flight.id ? null : current)}
-                >
-                  <span className="street-pig-wing" />
-                  <span className="street-pig-body" />
-                  <span className="street-pig-letter" />
-                </span>
-              )}
-            </div>
-          )
-        })}
-        <img
-          className="street-player"
-          src={playerSprite}
-          alt=""
-          style={{ left: position.x ?? '50%', bottom: position.y ?? '6%' }}
-        />
         <div
-          className="street-prompt"
-          style={{ left: position.x ?? '50%', bottom: (position.y ?? layout.height * 0.06) + 54 }}
-          role="status"
+          className="street-world"
+          ref={streetRef}
+          style={{ height: `${100 + extraLevels * 50}%`, transform: `translateY(${cameraOffset}px)` }}
         >
-          {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
-            <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : vacantPlotAction}</span>
-          )}
+          <div className="street-road" aria-hidden="true" />
+          <div className="street-trees" aria-hidden="true" />
+          {Array.from({ length: 1 + extraLevels }, (_, level) => (
+            <div className={level === 0 ? "street-level" : "street-level street-level--extension"} key={level}>
+              {(level === 0 ? plots : plots.slice(0, 2)).map((plot, index) => {
+                const firstPlot = level === 0 ? 1 : plots.length + (level - 1) * 2 + 1
+                const plotId = firstPlot + index
+                const house = housesByPlot.get(plotId)
+                return (
+                  <div className={`street-plot street-plot--${plot}`} data-plot key={plot}>
+                    <button
+                      className="street-plot-button"
+                      type="button"
+                      disabled={!canInteract}
+                      onClick={house ? () => onVisit(house) : () => onBuild(plotId)}
+                      aria-label={house ? `Visit ${house.name}'s homepage` : `${vacantPlotAction}, plot ${plotId}`}
+                    >
+                      {house ? (
+                        <img className="street-house" src={houseSprite(house.color, index)} alt="" />
+                      ) : (
+                        <span className="street-vacant-sign" aria-hidden="true">+</span>
+                      )}
+                      <span className="street-plot-label">{house ? house.name : vacantPlotAction}</span>
+                    </button>
+                    {house && (
+                      <button
+                        className="street-mailbox"
+                        type="button"
+                        aria-label={`Open mailbox for ${house.name}`}
+                        aria-disabled={!canInteract || plotId !== nearbyMailbox}
+                        title={plotId === nearbyMailbox ? 'Open mailbox' : 'Walk up to the mailbox to use it'}
+                        onClick={() => { if (canInteract) openMailbox(plotId) }}
+                      >
+                        <span aria-hidden="true" />
+                      </button>
+                    )}
+                    {house && flight?.plot === plotId && (
+                      <span
+                        className="street-pig-flight"
+                        key={flight.id}
+                        style={{ '--pig-rise': `-${layout.plots[plotId - 1].mailboxY + 70}px` }}
+                        aria-hidden="true"
+                        onAnimationEnd={() => setFlight((current) => current?.id === flight.id ? null : current)}
+                      >
+                        <span className="street-pig-wing" />
+                        <span className="street-pig-body" />
+                        <span className="street-pig-letter" />
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          <img
+            className="street-player"
+            src={playerSprites[position.facing]}
+            alt=""
+            style={{ left: position.x ?? '50%', bottom: playerHeight }}
+          />
+          <div
+            className="street-prompt"
+            style={{ left: position.x ?? '50%', bottom: playerHeight + 54 }}
+            role="status"
+          >
+            {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
+              <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : vacantPlotAction}</span>
+            )}
+          </div>
         </div>
       </section>
       <dialog
@@ -283,15 +338,6 @@ export default function StreetGame({ houses, paused, interactionsDisabled, vacan
           </div>
         </form>
       </dialog>
-      {houses.some((house) => Number(house.plot_id) > plots.length) && (
-        <ul className="street-other-homes" aria-label="More homes">
-          {houses.filter((house) => Number(house.plot_id) > plots.length).map((house) => (
-            <li key={house.id}>
-              <button type="button" disabled={!canInteract} onClick={() => onVisit(house)}>Visit {house.name}</button>
-            </li>
-          ))}
-        </ul>
-      )}
     </>
   )
 }
