@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import Dialog from './Dialog'
 import { supabase } from './lib/supabase'
 
 const usernamePattern = '[a-z0-9_]{3,24}'
 const usernameHelp = 'Use 3–24 lowercase letters, numbers, or underscores.'
 
-function AuthForm() {
+function AuthForm({ building }) {
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -34,6 +35,7 @@ function AuthForm() {
   return (
     <>
       <h2 id="account-title">{creating ? 'Create an account' : 'Sign in to Webstreet'}</h2>
+      {building && <p>Use your account to claim a plot and build your house.</p>}
       <form className="account-form" onSubmit={submit}>
         <label>Email<input name="email" type="email" autoComplete="email" required /></label>
         <label>
@@ -68,7 +70,7 @@ function AuthForm() {
   )
 }
 
-function AccountDetails({ userId }) {
+function AccountDetails({ userId, addFriend }) {
   const [profile, setProfile] = useState(undefined)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -124,12 +126,15 @@ function AccountDetails({ userId }) {
     }
   }
 
+  const title = addFriend ? 'Add a friend' : profile === null ? 'Choose a username' : 'Friends'
+
   return (
     <>
-      <h2 id="account-title">{profile === null ? 'Choose a username' : 'Friends'}</h2>
+      <h2 id="account-title">{title}</h2>
       {profile === undefined && !error && <p role="status">Loading your profile…</p>}
       {profile === null && (
         <form className="account-form" onSubmit={saveProfile}>
+          {addFriend && <p>Choose a username to start sending friend requests.</p>}
           <label>
             Username
             <input name="username" autoCapitalize="none" autoComplete="username" pattern={usernamePattern} aria-describedby="username-help" required />
@@ -138,6 +143,7 @@ function AccountDetails({ userId }) {
           <button type="submit" className="build-button" disabled={busy}>Save username</button>
         </form>
       )}
+      {profile && addFriend && <p>You already have a house. Add a friend so they can claim a plot of their own.</p>}
       {profile && <FriendList userId={userId} username={profile.username} />}
       {error && <p className="account-error" role="alert">{error}</p>}
       <button type="button" className="account-button account-signout" disabled={busy} onClick={signOut}>
@@ -290,30 +296,22 @@ function RequestGroup({ title, empty, requests, userId, busy, onChange, removeLa
   )
 }
 
-export default function AccountDialog({ session, onClose }) {
-  const dialogRef = useRef(null)
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    dialog.showModal()
-    return () => dialog.close()
-  }, [])
-
+export default function AccountDialog({ session, onClose, addFriend, building }) {
   return (
-    <dialog className="account-dialog" ref={dialogRef} aria-labelledby="account-title" onCancel={onClose}>
+    <Dialog className="account-dialog" labelId="account-title" onClose={onClose}>
       <button type="button" className="close" onClick={onClose} aria-label="Close account panel">×</button>
       {!supabase ? (
         <>
-          <h2 id="account-title">Accounts and friends</h2>
+          <h2 id="account-title">{addFriend ? 'Add a friend' : 'Accounts and friends'}</h2>
           <p>Accounts and friend requests are available on a shared street configured with Supabase.</p>
         </>
       ) : session === undefined ? (
         <h2 id="account-title">Loading account…</h2>
       ) : session ? (
-        <AccountDetails key={session.user.id} userId={session.user.id} />
+        <AccountDetails key={session.user.id} userId={session.user.id} addFriend={addFriend} />
       ) : (
-        <AuthForm />
+        <AuthForm building={building} />
       )}
-    </dialog>
+    </Dialog>
   )
 }
