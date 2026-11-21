@@ -12,8 +12,17 @@ const starterHouses = [
 
 const houseColors = ['#ff70a6', '#ffd166', '#06d6a0', '#7bdff2', '#cdb4db', '#ff9f1c']
 
+function availablePlot(houses, preferredPlot) {
+  const occupied = new Set(houses.map((house) => Number(house.plot_id)))
+  if (preferredPlot && !occupied.has(preferredPlot)) return preferredPlot
+  let plot = 1
+  while (occupied.has(plot)) plot += 1
+  return plot
+}
+
 function App() {
-  const [houses, setHouses] = useState(() => {
+  const [streetHouses, setHouses] = useState(() => {
+    if (supabase) return null
     try {
       return JSON.parse(localStorage.getItem('webstreet-houses')) || starterHouses
     } catch {
@@ -21,11 +30,15 @@ function App() {
     }
   })
   const [selected, setSelected] = useState(null)
-  const [formOpen, setFormOpen] = useState(false)
+  const [buildRequest, setBuildRequest] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [buildError, setBuildError] = useState('')
+  const [streetError, setStreetError] = useState(false)
+  const [streetRevision, setStreetRevision] = useState(0)
   const [accountOpen, setAccountOpen] = useState(false)
   const [session, setSession] = useState(undefined)
+  const houses = streetHouses ?? []
+  const formOpen = buildRequest !== null
 
   useEffect(() => {
     if (!supabase) return
@@ -36,16 +49,42 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!supabase) return
+    const controller = new AbortController()
+    let loading = false
+
     async function loadHouses() {
-      if (!supabase) return
+      if (loading || document.hidden) return
+      loading = true
       const { data, error } = await supabase
         .from('houses')
         .select('*')
         .order('plot_id', { ascending: true })
-      if (!error && data) setHouses(data)
+        .abortSignal(controller.signal)
+      loading = false
+      if (controller.signal.aborted) return
+      setStreetError(Boolean(error))
+      if (!error) setHouses(data)
     }
+
     loadHouses()
-  }, [])
+    const timer = window.setInterval(loadHouses, 5000)
+    document.addEventListener('visibilitychange', loadHouses)
+    return () => {
+      controller.abort()
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', loadHouses)
+    }
+  }, [streetRevision])
+
+  function openBuild(plotId = null) {
+    setBuildError('')
+    setBuildRequest({ plotId })
+  }
+
+  function closeBuild() {
+    if (!saving) setBuildRequest(null)
+  }
 
   useEffect(() => {
     if (!supabase) {
@@ -69,47 +108,50 @@ function App() {
 
   async function addHouse(event) {
     event.preventDefault()
-    setSaving(true)
-    setError('')
+    if (saving) return
     const data = new FormData(event.currentTarget)
-    const plotIds = houses.map(h => h.plot_id).sort((a, b) => a - b)
-    let nextPlotId = 1
-    while (plotIds.includes(nextPlotId)) nextPlotId++
     const house = {
       name: data.get('name').trim(),
       title: data.get('title').trim(),
       description: data.get('description').trim(),
       color: houseColors[houses.length % houseColors.length],
       style: 'pixel',
-      plot_id: nextPlotId,
     }
     if (!house.name || !house.title) {
-      setSaving(false)
+      setBuildError('Enter a name and homepage title.')
       return
     }
 
-    try {
-      if (supabase) {
-        const { data: created, error: supaError } = await supabase
-          .from('houses')
-          .insert(house)
-          .select()
-          .single()
-        if (supaError || !created) {
-          setError(supaError?.message || 'Failed to save house. Please try again.')
-          setSaving(false)
-          return
-        }
-        setHouses((current) => [...current, created])
-      } else {
-        const next = { ...house, id: crypto.randomUUID() }
-        setHouses((current) => [...current, next])
+    setSaving(true)
+    setBuildError('')
+    const plotId = availablePlot(houses, buildRequest.plotId)
+    if (supabase) {
+      const { error } = await supabase
+        .from('houses')
+        .insert({ ...house, plot_id: plotId })
+      if (error) {
+        setBuildError('Could not save your house. Try again.')
+        setSaving(false)
+        return
       }
-      event.currentTarget.reset()
-      setFormOpen(false)
-    } catch (e) {
-      setError('Something went wrong. Please try again.')
+      setStreetRevision((current) => current + 1)
+    } else {
+      const next = {
+        ...house,
+        id: crypto.randomUUID(),
+        plot_id: plotId,
+      }
+      const updated = [...houses, next]
+      try {
+        localStorage.setItem('webstreet-houses', JSON.stringify(updated))
+      } catch {
+        setBuildError('Could not save your house in this browser.')
+        setSaving(false)
+        return
+      }
+      setHouses(updated)
     }
+    setBuildRequest(null)
     setSaving(false)
   }
 
@@ -121,7 +163,9 @@ function App() {
           <button type="button" className="account-button" onClick={() => setAccountOpen(true)}>
             {session ? 'Friends' : 'Sign in'}
           </button>
-          <button className="build-button" onClick={() => setFormOpen(true)}>+ Build a house</button>
+          <button className="build-button" disabled={!streetHouses} onClick={() => openBuild()}>
+            + Build a house
+          </button>
         </div>
       </header>
 
@@ -129,18 +173,22 @@ function App() {
         <p className="eyebrow">YOUR CORNER OF THE INTERNET</p>
         <h1>A street you build with your friends.</h1>
         <p className="pitch">Every house is someone&apos;s homepage.</p>
+        {(streetError || !streetHouses) && (
+          <p className="pitch" role="status">
+            {streetError ? 'Could not load the shared street. Retrying…' : 'Loading the shared street…'}
+          </p>
+        )}
       </section>
 
       <StreetGame
         houses={houses}
         paused={Boolean(selected)}
-        interactionsDisabled={formOpen || accountOpen}
+        interactionsDisabled={formOpen || accountOpen || !streetHouses}
         onVisit={setSelected}
-        onBuild={() => setFormOpen(true)}
+        onBuild={openBuild}
       />
 
       <footer>
-        <span>{houses.length} homes online</span>
         <span className="status"><i /> {supabase ? 'SHARED STREET' : 'LOCAL PREVIEW'}</span>
       </footer>
 
@@ -161,15 +209,15 @@ function App() {
       )}
 
       {formOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setFormOpen(false)}>
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeBuild}>
           <form className="builder" role="dialog" aria-modal="true" onSubmit={addHouse} onMouseDown={(event) => event.stopPropagation()}>
-            <button type="button" className="close" onClick={() => { setFormOpen(false); setError('') }} aria-label="Close form">×</button>
+            <button type="button" className="close" onClick={closeBuild} disabled={saving} aria-label="Close form">×</button>
             <p className="eyebrow">NEW HOMEPAGE</p>
             <h2>Claim your lot</h2>
-            {error && <p className="form-error">{error}</p>}
             <label>Name<input name="name" required maxLength="24" placeholder="e.g. Alex" /></label>
             <label>Homepage title<input name="title" required maxLength="50" placeholder="Alex's corner" /></label>
             <label>About you<textarea name="description" maxLength="180" placeholder="What makes your little internet place yours?" /></label>
+            {buildError && <p className="account-error" role="alert">{buildError}</p>}
             <button className="build-button" disabled={saving} type="submit">{saving ? 'Building…' : 'Build house'}</button>
           </form>
         </div>
