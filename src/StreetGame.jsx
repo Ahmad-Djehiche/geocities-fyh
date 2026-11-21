@@ -1,5 +1,8 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import playerSprite from './assets/street-player.png'
+import './StreetGame.css'
 
+const plots = ['west-north', 'east-north', 'west-south', 'east-south']
 const directions = {
   a: 'left', arrowleft: 'left',
   d: 'right', arrowright: 'right',
@@ -7,61 +10,51 @@ const directions = {
   s: 'down', arrowdown: 'down',
 }
 const playerSpeed = 230
-const interactionDistance = 45
-const streetEdge = 12
-const curb = 92
+const interactionDistance = 110
 
 export default function StreetGame({ houses, paused, onVisit, onBuild }) {
-  const viewportRef = useRef(null)
   const streetRef = useRef(null)
-  const [position, setPosition] = useState({ x: 38, y: 63 })
-  const [layout, setLayout] = useState({ width: 0, plots: [] })
-  const x = Math.min(position.x, Math.max(streetEdge, layout.width - streetEdge))
-  const { y } = position
+  const [position, setPosition] = useState({ x: null, y: null })
+  const [layout, setLayout] = useState({ width: 0, height: 0, plots: [] })
+
+  useEffect(() => {
+    const street = streetRef.current
+    function measure() {
+      const width = street.clientWidth
+      const height = street.clientHeight
+      const streetRect = street.getBoundingClientRect()
+      const plotPositions = Array.from(street.querySelectorAll('[data-plot]'), (plot) => {
+        const rect = plot.getBoundingClientRect()
+        return {
+          x: rect.left - streetRect.left + rect.width / 2,
+          y: rect.top - streetRect.top + rect.height / 2,
+        }
+      })
+      setLayout({ width, height, plots: plotPositions })
+      setPosition((current) => current.x === null
+        ? { x: width / 2, y: height * 0.06 }
+        : {
+            x: Math.min(width - 24, Math.max(24, current.x)),
+            y: Math.min(height - 24, Math.max(24, current.y)),
+          })
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(street)
+    return () => observer.disconnect()
+  }, [])
 
   let nearbyPlot = null
   let closestDistance = interactionDistance
-  for (const [index, plotX] of layout.plots.entries()) {
-    const distance = Math.hypot(x - plotX, y - curb)
+  for (const [index, plot] of layout.plots.entries()) {
+    const playerY = layout.height - (position.y ?? layout.height * 0.06)
+    const distance = Math.hypot((position.x ?? layout.width / 2) - plot.x, playerY - plot.y)
     if (distance < closestDistance) {
       closestDistance = distance
       nearbyPlot = index
     }
   }
   const nearbyHouse = houses[nearbyPlot]
-
-  useEffect(() => {
-    const street = streetRef.current
-    function measure() {
-      const plots = Array.from(street.querySelectorAll('[data-plot]'), (plot) =>
-        plot.offsetLeft + plot.offsetWidth / 2,
-      )
-      setLayout({ width: street.clientWidth, plots })
-      setPosition((current) => ({
-        ...current,
-        x: Math.min(current.x, street.clientWidth - streetEdge),
-      }))
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(street)
-    return () => observer.disconnect()
-  }, [houses])
-
-  useEffect(() => {
-    const viewport = viewportRef.current
-    const margin = 48
-    if (x < viewport.scrollLeft + margin) viewport.scrollLeft = x - margin
-    if (x > viewport.scrollLeft + viewport.clientWidth - margin) {
-      viewport.scrollLeft = x + margin - viewport.clientWidth
-    }
-  }, [x])
-
-  const interact = useEffectEvent(() => {
-    if (nearbyHouse) onVisit(nearbyHouse)
-    else if (nearbyPlot === houses.length) onBuild()
-  })
 
   useEffect(() => {
     if (paused) return
@@ -79,12 +72,10 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
 
       if (dx || dy) {
         const step = playerSpeed * elapsed / Math.hypot(dx, dy)
-        const rightEdge = streetRef.current.clientWidth - streetEdge
-        setPosition((current) => {
-          const x = Math.max(streetEdge, Math.min(rightEdge, current.x + dx * step))
-          const y = Math.max(streetEdge, Math.min(curb, current.y + dy * step))
-          return x === current.x && y === current.y ? current : { x, y }
-        })
+        setPosition((current) => ({
+          x: Math.max(24, Math.min(layout.width - 24, (current.x ?? layout.width / 2) + dx * step)),
+          y: Math.max(24, Math.min(layout.height - 24, (current.y ?? layout.height * 0.06) + dy * step)),
+        }))
       }
       frame = requestAnimationFrame(move)
     }
@@ -101,7 +92,10 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
           event.target.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return
 
       const key = event.key.toLowerCase()
-      if (key === 'e' && !event.repeat) interact()
+      if (key === 'e' && !event.repeat) {
+        if (nearbyHouse) onVisit(nearbyHouse)
+        else if (nearbyPlot === houses.length) onBuild()
+      }
       if (!Object.hasOwn(directions, key)) return
 
       event.preventDefault()
@@ -123,48 +117,66 @@ export default function StreetGame({ houses, paused, onVisit, onBuild }) {
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', stopMoving)
     }
-  }, [paused])
+  }, [paused, layout, nearbyHouse, nearbyPlot, houses.length, onVisit, onBuild])
 
   return (
-    <section aria-label="Webstreet neighborhood">
-      <p className="street-controls"><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move</p>
-      <div className="street-viewport" ref={viewportRef}>
-        <div className="street" ref={streetRef}>
-          <div className="sky-orbit orbit-one" />
-          <div className="sky-orbit orbit-two" />
-          <div className="cloud cloud-one">· · ·</div>
-          <div className="cloud cloud-two">· · · ·</div>
-          {houses.map((house, index) => (
-            <button
-              className="house"
-              data-plot
-              key={house.id}
-              onClick={() => onVisit(house)}
-              aria-label={`Visit ${house.name}'s homepage`}
-            >
-              <span className="house-number">{String(index + 1).padStart(2, '0')}</span>
-              <span className="roof" style={{ '--house-color': house.color }} />
-              <span className="chimney" style={{ '--house-color': house.color }} />
-              <span className="walls" style={{ '--house-color': house.color }}>
-                <span className="window window-left" />
-                <span className="window window-right" />
-                <span className="door" />
-                <span className="owner">{house.name}</span>
-              </span>
-            </button>
-          ))}
-          <button className="empty-lot" data-plot onClick={onBuild} aria-label="Build a new house">
-            <span>+</span>
-            <b>YOUR LOT</b>
-          </button>
-          <div className="street-player" style={{ left: x, bottom: y }} aria-hidden="true" />
-          <div className="street-prompt" style={{ left: x, bottom: y + 30 }} role="status">
-            {!paused && nearbyPlot !== null && (
-              <span><kbd>E</kbd> {nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
-            )}
-          </div>
+    <>
+      <p className="street-controls"><kbd>WASD</kbd> or <kbd>↑ ← ↓ →</kbd> to move; <kbd>E</kbd> to interact</p>
+      <section className="street-map" ref={streetRef} aria-label="Webstreet neighborhood">
+        <div className="street-road" aria-hidden="true" />
+        <div className="street-trees" aria-hidden="true" />
+        {plots.map((plot, index) => {
+          const house = houses[index]
+          return (
+            <div className={`street-plot street-plot--${plot}`} data-plot key={plot}>
+              <button
+                className="street-plot-button"
+                type="button"
+                onClick={house ? () => onVisit(house) : onBuild}
+                aria-label={house ? `Visit ${house.name}'s homepage` : `Build a house on plot ${index + 1}`}
+              >
+                {house ? (
+                  <span className="street-house" style={{ '--roof-color': house.color }} aria-hidden="true">
+                    <span className="street-house-roof" />
+                    <span className="street-house-front">
+                      <span className="street-window" />
+                      <span className="street-door" />
+                      <span className="street-window" />
+                    </span>
+                  </span>
+                ) : (
+                  <span className="street-vacant-sign" aria-hidden="true">+</span>
+                )}
+                <span className="street-plot-label">{house ? house.name : 'Vacant lot'}</span>
+              </button>
+            </div>
+          )
+        })}
+        <img
+          className="street-player"
+          src={playerSprite}
+          alt=""
+          style={{ left: position.x ?? '50%', bottom: position.y ?? '6%' }}
+        />
+        <div
+          className="street-prompt"
+          style={{ left: position.x ?? '50%', bottom: (position.y ?? layout.height * 0.06) + 54 }}
+          role="status"
+        >
+          {!paused && nearbyPlot !== null && (
+            <span><kbd>E</kbd> {nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
+          )}
         </div>
-      </div>
-    </section>
+      </section>
+      {houses.length > plots.length && (
+        <ul className="street-other-homes" aria-label="More homes">
+          {houses.slice(plots.length).map((house) => (
+            <li key={house.id}>
+              <button type="button" onClick={() => onVisit(house)}>Visit {house.name}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   )
 }

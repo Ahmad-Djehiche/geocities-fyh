@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import StreetGame from './StreetGame'
 import { supabase } from './lib/supabase'
+import StreetGame from './StreetGame'
 import './App.css'
 
 const starterHouses = [
