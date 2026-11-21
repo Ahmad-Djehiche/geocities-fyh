@@ -240,6 +240,7 @@
 .street-pig-flight {
   position: absolute;
   z-index: 6;
+  --pig-rise: 0px;
   left: calc(50% + var(--mailbox-offset) - 28px);
   bottom: 32px;
   width: 58px;
