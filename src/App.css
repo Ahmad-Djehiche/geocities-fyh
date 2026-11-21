@@ -14,7 +14,7 @@ main {
 .eyebrow { margin: 0 0 12px; font-size: 10px; letter-spacing: .22em; color: #6e6974; }
 .intro h1 { max-width: 760px; margin: 0; font-family: 'Instrument Serif', serif; font-size: clamp(48px, 6vw, 82px); line-height: .92; letter-spacing: -.045em; font-weight: 400; }
 .pitch { margin: 16px 0 0 4px; font-size: 13px; }
-.street-controls { margin: 0; padding: 0 42px 10px; font-size: 11px; }
+.street-controls { margin: 0; padding: 0 42px 10px; font-size: 11px; display: flex; align-items: center; justify-content: space-between; }
 .street-controls kbd, .street-prompt kbd { font: inherit; font-weight: 700; }
 .street-player {
   position: absolute;

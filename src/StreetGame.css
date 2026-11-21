@@ -14,6 +14,41 @@
   background-size: 44px 52px, 61px 47px;
   background-position: 6px 12px, 17px 32px;
   background-repeat: repeat;
+  transition: width 0.2s, height 0.2s, margin 0.2s;
+}
+
+.street-map--fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0;
+  z-index: 30;
+  border: none;
+  box-shadow: none;
+}
+
+.street-fullscreen-btn {
+  border: 2px solid #17161a;
+  border-radius: 6px;
+  background: #fffdf5;
+  color: #17161a;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #17161a;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.street-fullscreen-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #17161a;
+}
+
+.street-fullscreen-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .street-road {
