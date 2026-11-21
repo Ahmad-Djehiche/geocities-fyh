@@ -105,11 +105,7 @@ function App() {
       <StreetGame
         houses={houses}
         paused={Boolean(selected)}
-<<<<<<< HEAD
         interactionsDisabled={formOpen || accountOpen}
-=======
-        interactionsDisabled={formOpen}
->>>>>>> origin/main
         onVisit={setSelected}
         onBuild={() => setFormOpen(true)}
       />

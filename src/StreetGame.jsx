@@ -1,12 +1,8 @@
-<<<<<<< HEAD
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
-=======
 import blueHouseSprite from './assets/craftpix-house-blue.png'
 import greenHouseSprite from './assets/craftpix-house-green.png'
 import plumHouseSprite from './assets/craftpix-house-plum.png'
 import houseSprite from './assets/craftpix-house.png'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
->>>>>>> origin/main
 import playerSprite from './assets/street-player.png'
 import './StreetGame.css'
 
@@ -91,12 +87,8 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
 
   const interact = useEffectEvent(() => {
     if (!canInteract) return
-<<<<<<< HEAD
-    if (nearbyHouse) onVisit(nearbyHouse)
-=======
     if (nearbyMailbox) openMailbox(nearbyMailbox)
     else if (nearbyHouse) onVisit(nearbyHouse)
->>>>>>> origin/main
     else if (nearbyPlot !== null) onBuild()
   })
 
@@ -158,9 +150,6 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('blur', stopMoving)
     }
-<<<<<<< HEAD
-  }, [paused, layout])
-=======
   }, [paused, mailbox, layout])
 
   useEffect(() => {
@@ -175,7 +164,6 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
     setFlight({ plot: mailbox.plot, id: flightId.current })
     mailboxDialog.current.close()
   }
->>>>>>> origin/main
 
   return (
     <>
@@ -240,13 +228,8 @@ export default function StreetGame({ houses, paused, interactionsDisabled, onVis
           style={{ left: position.x ?? '50%', bottom: (position.y ?? layout.height * 0.06) + 54 }}
           role="status"
         >
-<<<<<<< HEAD
-          {canInteract && nearbyPlot !== null && (
-            <span><kbd>E</kbd> {nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
-=======
           {canInteract && !mailbox && (nearbyMailbox || nearbyPlot !== null) && (
             <span><kbd>E</kbd> {nearbyMailbox ? 'Open mailbox' : nearbyHouse ? `Visit ${nearbyHouse.name}` : 'Build here'}</span>
->>>>>>> origin/main
           )}
         </div>
       </section>
