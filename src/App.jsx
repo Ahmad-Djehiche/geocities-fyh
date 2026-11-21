@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AccountDialog from './AccountDialog'
 import { HouseBuilder, HouseHomepage } from './HouseDialogs'
 import { supabase } from './lib/supabase'
@@ -36,20 +36,14 @@ function availablePlot(houses, preferredPlot) {
 }
 
 function App() {
-  const [previewHouses, setPreviewHouses] = useState(() => supabase ? null : loadPreviewHouses())
-  const [sharedStreet, setSharedStreet] = useState(null)
-  const streetLoad = useRef(null)
+  const [streetHouses, setHouses] = useState(() => supabase ? null : loadPreviewHouses())
   const [dialog, setDialog] = useState(null)
   const [streetError, setStreetError] = useState(false)
   const [streetRevision, setStreetRevision] = useState(0)
   const [session, setSession] = useState(undefined)
   const [ownership, setOwnership] = useState(null)
-  const userId = session?.user.id
-  const authReady = session !== undefined
-  const streetHouses = supabase
-    ? (sharedStreet?.userId === userId ? sharedStreet?.houses : null)
-    : previewHouses
   const houses = streetHouses ?? emptyHouses
+  const userId = session?.user.id
   const checkingOwnership = Boolean(userId && ownership?.userId !== userId)
   const ownsHouse = supabase
     ? Boolean(userId && ownership?.userId === userId && ownership.hasHouse)
@@ -57,14 +51,7 @@ function App() {
   const buildRequest = dialog?.type === 'build' ? dialog : null
   const showBuilder = Boolean(buildRequest && !ownsHouse && !checkingOwnership && (!supabase || userId))
   const showAccount = dialog?.type === 'account' || Boolean(buildRequest && !showBuilder)
-  const selected = dialog?.type === 'visit' ? houses.find((house) => house.id === dialog.houseId) : null
-
-  function closeMissingHomepage(visibleHouses) {
-    setDialog((current) => {
-      if (current?.type === 'visit' && !visibleHouses.some((house) => house.id === current.houseId)) return null
-      return current
-    })
-  }
+  const selected = dialog?.type === 'visit' ? dialog.house : null
 
   useEffect(() => {
     if (!supabase) return
@@ -77,27 +64,22 @@ function App() {
   useEffect(() => {
     if (supabase) return
     function syncPreview(event) {
-      if (event.key !== previewStorageKey && event.key !== null) return
-      const updated = loadPreviewHouses()
-      setPreviewHouses(updated)
-      closeMissingHomepage(updated)
+      if (event.key === previewStorageKey || event.key === null) setHouses(loadPreviewHouses())
     }
     window.addEventListener('storage', syncPreview)
     return () => window.removeEventListener('storage', syncPreview)
   }, [])
 
   useEffect(() => {
-    if (!supabase || !authReady) return
+    if (!supabase) return
     const controller = new AbortController()
-    streetLoad.current = controller
     let loading = false
 
     async function loadHouses() {
       if (loading || document.hidden) return
       loading = true
       const [street, owned] = await Promise.all([
-        supabase.from(userId ? 'friend_street_houses' : 'houses')
-          .select('*').order('plot_id', { ascending: true }).abortSignal(controller.signal),
+        supabase.from('houses').select('*').order('plot_id', { ascending: true }).abortSignal(controller.signal),
         userId
           ? supabase.from('houses').select('id').eq('owner_id', userId).abortSignal(controller.signal).maybeSingle()
           : null,
@@ -105,10 +87,7 @@ function App() {
       loading = false
       if (controller.signal.aborted) return
       setStreetError(Boolean(street.error))
-      if (!street.error) {
-        setSharedStreet({ userId, houses: street.data })
-        closeMissingHomepage(street.data)
-      }
+      if (!street.error) setHouses(street.data)
       if (owned) {
         setOwnership((current) => owned.error && current?.userId === userId
           ? current
@@ -124,21 +103,7 @@ function App() {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', loadHouses)
     }
-  }, [streetRevision, userId, authReady])
-
-  function refreshStreet() {
-    streetLoad.current?.abort()
-    setStreetRevision((current) => current + 1)
-  }
-
-  function handleFriendshipChange(removedFriendId) {
-    if (removedFriendId) {
-      setSharedStreet((current) => current && current.userId === userId
-        ? { ...current, houses: current.houses.filter((house) => house.owner_id !== removedFriendId) }
-        : current)
-    }
-    refreshStreet()
-  }
+  }, [streetRevision, userId])
 
   function openBuild(plotId = null) {
     setDialog({ type: 'build', plotId })
@@ -158,21 +123,19 @@ function App() {
         .single()
       if (error?.code === '23505' && error.message.includes('houses_one_per_account')) {
         setOwnership({ userId, hasHouse: true })
-        refreshStreet()
+        setStreetRevision((current) => current + 1)
         return
       }
       if (error) return 'Could not save your house. Try again.'
 
       setDialog((current) => current === buildRequest ? null : current)
       setOwnership({ userId, hasHouse: true })
-      setSharedStreet((current) => current && current.userId === userId
-        ? { ...current, houses: [...current.houses.filter((home) => home.id !== created.id), created] }
-        : current)
-      refreshStreet()
+      setHouses((current) => [...(current ?? emptyHouses).filter((home) => home.id !== created.id), created])
+      setStreetRevision((current) => current + 1)
     } else {
       const previewHouses = loadPreviewHouses()
       if (hasPreviewHouse(previewHouses)) {
-        setPreviewHouses(previewHouses)
+        setHouses(previewHouses)
         return
       }
       const next = {
@@ -187,7 +150,7 @@ function App() {
         return 'Could not save your house in this browser.'
       }
       closeDialog()
-      setPreviewHouses(updated)
+      setHouses(updated)
     }
   }
 
@@ -221,7 +184,7 @@ function App() {
         paused={Boolean(selected)}
         interactionsDisabled={Boolean(dialog) || !streetHouses}
         vacantPlotAction={ownsHouse ? 'Add a friend' : 'Claim a plot'}
-        onVisit={(house) => setDialog({ type: 'visit', houseId: house.id })}
+        onVisit={(house) => setDialog({ type: 'visit', house })}
         onBuild={openBuild}
       />
 
@@ -234,7 +197,6 @@ function App() {
           session={buildRequest && checkingOwnership ? undefined : session}
           addFriend={Boolean(buildRequest && ownsHouse)}
           building={Boolean(buildRequest)}
-          onFriendshipChange={handleFriendshipChange}
           onClose={closeDialog}
         />
       )}

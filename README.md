@@ -27,8 +27,6 @@ If another player claims the selected lot first, the database places the house o
 
 Open **Friends** and send a request to another player’s username. The recipient can accept it from **Incoming requests**. Both players will then see each other under **Your friends**. The open Friends panel refreshes automatically.
 
-Signed-in streets show your house, your accepted friends’ houses, and legacy houses without a recorded owner. Removing a friendship removes each player’s house from the other’s street. Accepting a new request restores both houses to view.
-
 To check the setup across machines, sign into two accounts in separate browser profiles or on separate devices, send a request from the first account, and accept it from the second.
 
 Visitors can view houses on the shared street. Local preview allows one custom house per browser and keeps it in local storage.
