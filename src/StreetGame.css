@@ -4,9 +4,17 @@
   width: min(calc(100% - 32px), 860px);
   height: clamp(440px, 52vw, 550px);
   margin: 0 auto 24px;
-  overflow: hidden;
+  overflow: clip;
   border: 4px solid #283f37;
   box-shadow: 5px 5px #283f3740;
+  transition: width 0.2s, height 0.2s, margin 0.2s;
+}
+
+.street-world {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column-reverse;
   background-color: #83b962;
   background-image:
     conic-gradient(from 90deg at 5px 4px, transparent 75%, #a4ce72 0),
@@ -14,7 +22,19 @@
   background-size: 44px 52px, 61px 47px;
   background-position: 6px 12px, 17px 32px;
   background-repeat: repeat;
-  transition: width 0.2s, height 0.2s, margin 0.2s;
+}
+
+.street-level {
+  position: relative;
+  flex: 2 1 0;
+  min-height: 0;
+}
+
+.street-level--extension { flex-grow: 1; }
+
+.street-level--extension .street-plot {
+  --plot-y: 14%;
+  height: 68%;
 }
 
 .street-map--fullscreen {
@@ -187,16 +207,6 @@
   image-rendering: pixelated;
   filter: drop-shadow(2px 3px #69493960);
   pointer-events: none;
-}
-
-.street-other-homes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 auto 24px;
-  padding: 0 16px;
-  width: min(100%, 860px);
-  list-style: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
