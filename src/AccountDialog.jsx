@@ -70,7 +70,7 @@ function AuthForm({ building }) {
   )
 }
 
-function AccountDetails({ userId, addFriend }) {
+function AccountDetails({ userId, addFriend, onFriendshipChange }) {
   const [profile, setProfile] = useState(undefined)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -144,7 +144,7 @@ function AccountDetails({ userId, addFriend }) {
         </form>
       )}
       {profile && addFriend && <p>You already have a house. Add a friend so they can claim a plot of their own.</p>}
-      {profile && <FriendList userId={userId} username={profile.username} />}
+      {profile && <FriendList userId={userId} username={profile.username} onFriendshipChange={onFriendshipChange} />}
       {error && <p className="account-error" role="alert">{error}</p>}
       <button type="button" className="account-button account-signout" disabled={busy} onClick={signOut}>
         Sign out
@@ -159,7 +159,7 @@ const friendColumns = `
   recipient:profiles!friend_requests_recipient_id_fkey(username)
 `
 
-function FriendList({ userId, username }) {
+function FriendList({ userId, username, onFriendshipChange }) {
   const [requests, setRequests] = useState(null)
   const [loadError, setLoadError] = useState('')
   const [message, setMessage] = useState('')
@@ -234,6 +234,10 @@ function FriendList({ userId, username }) {
     const { data, error } = await operation.eq('id', request.id).eq('status', request.status).select('id').maybeSingle()
     if (error) setMessage('Could not update this request. Try again.')
     else if (!data) setMessage('This request has already changed.')
+    if (!error && (accept || request.status === 'accepted')) {
+      const friendId = request.sender_id === userId ? request.recipient_id : request.sender_id
+      onFriendshipChange(data && !accept ? friendId : null)
+    }
     setRefresh((current) => current + 1)
     setBusy(false)
   }
@@ -296,7 +300,7 @@ function RequestGroup({ title, empty, requests, userId, busy, onChange, removeLa
   )
 }
 
-export default function AccountDialog({ session, onClose, addFriend, building }) {
+export default function AccountDialog({ session, onClose, addFriend, building, onFriendshipChange }) {
   return (
     <Dialog className="account-dialog" labelId="account-title" onClose={onClose}>
       <button type="button" className="close" onClick={onClose} aria-label="Close account panel">×</button>
@@ -308,7 +312,7 @@ export default function AccountDialog({ session, onClose, addFriend, building })
       ) : session === undefined ? (
         <h2 id="account-title">Loading account…</h2>
       ) : session ? (
-        <AccountDetails key={session.user.id} userId={session.user.id} addFriend={addFriend} />
+        <AccountDetails key={session.user.id} userId={session.user.id} addFriend={addFriend} onFriendshipChange={onFriendshipChange} />
       ) : (
         <AuthForm building={building} />
       )}
