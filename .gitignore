@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+
+# Test and temporary outputs
+coverage
+.tmp
